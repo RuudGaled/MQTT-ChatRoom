@@ -1,0 +1,33 @@
+root = Tk()
+    root.title("Login")
+    #root.withdraw()
+
+    
+    #information = []
+    frame1 = Frame(root)
+    frame1.pack()
+    entry1 = Entry(frame1)
+
+    frame2 = Frame(root)
+    frame2.pack()
+    entry2 = Entry(frame2)
+
+    #my_entry = Entry(root)
+    #my_entry.grid(row=2, column=0, pady=20, padx=5)
+    
+    btnConfirm = Button(root, text="Confirm", command=confirm)
+    btnConfirm.grid(row=3, column=0, pady=20, padx=20)
+
+    def confirm():
+        nickname = ''
+        room = ''
+        nickname = entry1.get()
+        room = entry2.get()
+        quit()
+        """name = ''
+        room = ''
+        for entris in information:
+            name = str(entris.get())
+            room = entris[1]"""
+
+    root.mainloop()
