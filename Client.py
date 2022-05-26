@@ -1,24 +1,35 @@
 import os
 import threading
+import random as rd
+import string
 from time import time
 #import tkinter
 from tkinter import *
 import tkinter.scrolledtext
 from tkinter import Button, Entry, Frame, Tk, simpledialog
+from numpy import append
 import paho.mqtt.client as mqtt
 
 RoomName = "ProBoScIdE"
 global DummyVar
 DummyVar = "\n"
-nickname = "FRANK"
+# nickname = "FRANK"
+#nickname = ""
 
-HOST = "mqtt.eclipseprojects.io"
+"""nicknames = []
+clients = []"""
+
+
+HOST = "mqtt.eclipseprojects.io"  # mqtt.eclipseprojects.io  broker.hivemq.com
 PORT = 1883
 conn_status = True  # Flag stato connessione
 
 # Definizione della funzione on_connect
 def on_connection(client, user_data, flag, rc):
     global conn_status  # global variable in this file
+    global nickname
+    
+
     status_decoder = {  # swtich case in python style using dictionary
         0: "Successfully Connected",
         1: "Connection refused: Incorrect Protocol Version",
@@ -32,10 +43,14 @@ def on_connection(client, user_data, flag, rc):
     if rc == 0:
         #conn_status = True
         client.connected_flag = True
+        
 
         # Creazione simpledialog per nickname e validazione password
-        
         nickname = login()
+        
+        """nicknames.append(nickname)
+        clients.append(client_id)
+        print(clients + " 1")"""
         """
         msg1 = tkinter.Tk()
         msg1.withdraw()
@@ -47,11 +62,12 @@ def on_connection(client, user_data, flag, rc):
                 pass
             else:
                 print("error")"""
-        """
+        
         conn_text = ("System>>{} has connected to broker with status: \n\t{}.\n".format(nickname, 
                                                                                         status_decoder.get(rc)))
         
-        ChatFill.configure(state="normal")
+        write_onscreen(conn_text)
+        """ChatFill.configure(state="normal")
         ChatFill.insert(INSERT, str(conn_text))
         client.subscribe(RoomName)
         conn_status = True
@@ -76,7 +92,7 @@ def login():
             #client.connected_flag = False
             #on_disconnect(client)
         
-        return nickname
+    return nickname
 
 def on_disconnect(client):
     #global conn_status 
@@ -107,18 +123,44 @@ def on_message(client, user_data, msg):
 
 def send_message():
     global DummyVar
+    global nickname
+
+
+
+    get_message = str(MassageFill.get("1.0", END))
     get_message = str(MassageFill.get("1.0", END))
     if get_message == " ":
         pass
     else:
-        send_message = "\n{}>>\t{}".format(nickname, get_message)
+        send_message = "\n{}:\t{}".format(nickname, get_message)
         DummyVar = send_message
-        #ChatFill.configure(state="normal")
         client.publish(RoomName, send_message)
-        #ChatFill.insert(INSERT, str(send_message))
         write_onscreen(send_message)
         MassageFill.delete("1.0", END)
-        #ChatFill.configure(state="disabled")
+    """if nicknames[clients.index(client_id)] == 'admin':
+        if get_message.startswith('/kick'):
+            #{get_message[len(nickname)+2+6:]} == 'kick'
+            write_onscreen("funziona")
+            name_to_kick = get_message[5:]
+            write_onscreen(name_to_kick)
+            kick_user(name_to_kick)
+        else:
+            write_onscreen("Non hai il permesso")"""
+    
+    
+    
+
+# Definizione funzione kick_user
+"""def kick_user(name):
+    if name in nicknames:
+        #print(nicknames)
+        name_index = nicknames.index(name)
+        client_to_kick = clients[name_index]
+        clients.remove(client_to_kick)
+        print(clients)
+        nicknames.remove(name)
+        print(nicknames)"""
+        #broadcast(f'{name} was kicked by an admin!\n'.encode('utf-8'))
 
 # GUI
 window = Tk()
@@ -150,6 +192,9 @@ SendButton.place(x=480, y=0, width=100, height=75)
 
 # Creazione flag per la connessione
 mqtt.Client.connected_flag = False
+
+# Creazione id
+#client_id = 'Client-' + ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
 
 # Istanzio l'oggetto    
 client = mqtt.Client()
