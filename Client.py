@@ -1,4 +1,5 @@
 import os
+from platform import mac_ver
 import string
 import random as rd
 import tkinter.scrolledtext
@@ -64,19 +65,24 @@ def on_message(client, user_data, msg):
 
     decrypted_message = cipher.decrypt(msg.payload)
     msg1 = decrypted_message.decode("utf-8")
+    m = "ahhiiii"
     # messaggio == dummy: # FUNZIONA
-    print(msg.payload)
-    print(dummy)
-    if msg.payload == dummy:  # msg1 == dummy:
+    #print(msg.payload)
+    #print(dummy)
+    #print(msg1)
+    #print(msg1[len(nickname)+2+6:])
+    if msg.payload == dummy:  # msg1 == dummy:  
         pass
     else:
         ChatFill.configure(state="normal")
         ChatFill.insert(INSERT, str(msg1))  # messaggio
         ChatFill.configure(state="disabled")
 
-        if msg1.startswith('/kick'):  # messaggio
-            user = msg1[6:]   # messaggio
-            if user == nickname:
+        print(msg1[len(nickname)+2+6:])
+        if msg1[len(nickname)+2:].startswith('/kick'):  # messaggio
+            user = msg1[len(nickname)+2+5:]  # messaggio
+            print(user)
+            if user.strip('\n') == nickname:
 
                 message = nickname + " is disconnected"
                 send_message = "\n{}>> {}".format("System ", message)
@@ -90,6 +96,24 @@ def on_message(client, user_data, msg):
                 client.loop_stop()
                 client.disconnect()
 
+    """if msg1[len(nickname)+2:].startswith('/kick'):
+        user = msg1[len(nickname)+2+6:]
+        print(user)
+        print(nickname)
+        if user.strip('\n') == nickname:
+            print("Mi disconnetto")
+            ChatFill.configure(state="normal")
+        ChatFill.insert(INSERT, m)  # messaggio
+        ChatFill.configure(state="disabled")
+    
+    elif msg.payload == dummy:
+        pass
+    else:
+        ChatFill.configure(state="normal")
+        ChatFill.insert(INSERT, str(msg1))  # messaggio
+        ChatFill.configure(state="disabled")"""
+
+        
 
 def send_message():
     global dummy
