@@ -1,36 +1,31 @@
 import os
-import threading
-import random as rd
 import string
-from time import time
-#import tkinter
+import random as rd
+import tkinter.scrolledtext
 from tkinter import *
 import tkinter.scrolledtext
-from tkinter import Button, Entry, Frame, Tk, simpledialog
-from numpy import append
+from tkinter import simpledialog
+from cryptography.fernet import Fernet
 import paho.mqtt.client as mqtt
 
-RoomName = "ProBoScIdE"
-global DummyVar
-DummyVar = "\n"
-# nickname = "FRANK"
-#nickname = ""
-
-"""nicknames = []
-clients = []"""
-
-
-HOST = "mqtt.eclipseprojects.io"  # mqtt.eclipseprojects.io  broker.hivemq.com
+HOST = "mqtt.eclipseprojects.io"
 PORT = 1883
-conn_status = True  # Flag stato connessione
+ROOM = "provaChat"
+global dummy
+dummy = "\n"
 
-# Definizione della funzione on_connect
-def on_connection(client, user_data, flag, rc):
-    global conn_status  # global variable in this file
+#def reset():
+#ret = client.publish(ROOM, "", 0, True)
+
+
+def on_log(client, userdata, level, buf):
+    print(buf)
+
+
+def on_connect(client, userdata, flags, rc):
     global nickname
-    
 
-    status_decoder = {  # swtich case in python style using dictionary
+    status_decoder = {
         0: "Successfully Connected",
         1: "Connection refused: Incorrect Protocol Version",
         2: "Connection refused: Invalid Client Identifier",
@@ -39,128 +34,90 @@ def on_connection(client, user_data, flag, rc):
         5: "Connection refused: Not Authorized",
     }
 
-    # Connessione al Broker avvenuta con successo
-    if rc == 0:
-        #conn_status = True
-        client.connected_flag = True
-        
-
-        # Creazione simpledialog per nickname e validazione password
-        nickname = login()
-        
-        """nicknames.append(nickname)
-        clients.append(client_id)
-        print(clients + " 1")"""
-        """
-        msg1 = tkinter.Tk()
-        msg1.withdraw()
-
-        nickname = simpledialog.askstring("Nickname", "Please choose a nickname", parent=msg1)
-        if nickname == 'admin':
-            password = simpledialog.askstring("Password", "Insert a password", parent=msg1, show='*')
-            if password == '1234':
-                pass
-            else:
-                print("error")"""
-        
-        conn_text = ("System>>{} has connected to broker with status: \n\t{}.\n".format(nickname, 
-                                                                                        status_decoder.get(rc)))
-        
-        write_onscreen(conn_text)
-        """ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(conn_text))
-        client.subscribe(RoomName)
-        conn_status = True
-        ChatFill.configure(state="disabled")"""
-    else:
-        client.connected_flag = False
-        #conn_status = False
-
-def login():
     msg = tkinter.Tk()
     msg.withdraw()
 
-    nickname = simpledialog.askstring("Nickname", "Please choose a nickname", parent=msg)
+    nickname = simpledialog.askstring(
+        "Nickname", "Please choose a nickname", parent=msg)
     if nickname == 'admin':
-        password = simpledialog.askstring("Password", "Insert a password", parent=msg, show='*')
+        password = simpledialog.askstring(
+            "Password", "Insert a password", parent=msg, show='*')
         if password == '1234':
             pass
         else:
-            # messaggio di errore
-            message = "Password sbagliata!"
-            write_onscreen(message)
-            #client.connected_flag = False
-            #on_disconnect(client)
-        
-    return nickname
+            client.loop_stop()
+            client.disconnect()
 
-def on_disconnect(client):
-    #global conn_status 
-    #conn_status = False
-    client.connected_flag = False
-    print("Error1")
-    #window.destroy()
-    client.loop_stop()
-    #window.destroy()
-    os._exit(0)
+    conn_text = ("System>> {} has connected to broker with status: \n\t{}.\n".format(nickname,
+                                                                                     status_decoder.get(rc)))
 
-def write_onscreen(message):
+    client.subscribe(ROOM)
     ChatFill.configure(state="normal")
-    ChatFill.insert(INSERT, str(message))
+    ChatFill.insert(INSERT, str(conn_text))
     ChatFill.configure(state="disabled")
 
+
 def on_message(client, user_data, msg):
-    # check incoming payload to prevent owner echo text
-    global incoming_massage
-    incoming_massage = msg.payload.decode("utf-8")
-    if incoming_massage.find(DummyVar) >= 0:
+    global dummy
+    global nickname
+    #messaggio = msg.payload.decode("utf-8")
+
+    decrypted_message = cipher.decrypt(msg.payload)
+    msg1 = decrypted_message.decode("utf-8")
+    # messaggio == dummy: # FUNZIONA
+    print(msg.payload)
+    print(dummy)
+    if msg.payload == dummy:  # msg1 == dummy:
         pass
     else:
-        """ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(incoming_massage))
-        ChatFill.configure(state="disabled")"""
-        write_onscreen(incoming_massage)
+        ChatFill.configure(state="normal")
+        ChatFill.insert(INSERT, str(msg1))  # messaggio
+        ChatFill.configure(state="disabled")
+
+        if msg1.startswith('/kick'):  # messaggio
+            user = msg1[6:]   # messaggio
+            if user == nickname:
+
+                message = nickname + " is disconnected"
+                send_message = "\n{}>> {}".format("System ", message)
+                client.publish(ROOM, send_message)
+                ChatFill.configure(state="normal")
+
+                ChatFill.insert(INSERT, str(send_message))
+                MassageFill.delete("1.0", END)
+                ChatFill.configure(state="disabled")
+
+                client.loop_stop()
+                client.disconnect()
+
 
 def send_message():
-    global DummyVar
+    global dummy
     global nickname
 
-
-
-    get_message = str(MassageFill.get("1.0", END))
-    get_message = str(MassageFill.get("1.0", END))
-    if get_message == " ":
+    get_message = MassageFill.get("1.0", END)
+    get_message.encode('utf-8')
+    if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n':  # FUNZIONA
         pass
     else:
-        send_message = "\n{}:\t{}".format(nickname, get_message)
-        DummyVar = send_message
-        client.publish(RoomName, send_message)
-        write_onscreen(send_message)
-        MassageFill.delete("1.0", END)
-    """if nicknames[clients.index(client_id)] == 'admin':
-        if get_message.startswith('/kick'):
-            #{get_message[len(nickname)+2+6:]} == 'kick'
-            write_onscreen("funziona")
-            name_to_kick = get_message[5:]
-            write_onscreen(name_to_kick)
-            kick_user(name_to_kick)
-        else:
-            write_onscreen("Non hai il permesso")"""
-    
-    
-    
+        #send_message = "{}: {}".format(nickname, get_message) #\n
+        #send_message = bytes(send_message, encoding='utf8')
+        message1 = message2 = "{}: {}".format(nickname, get_message)
+        #message1  = "{}: {}".format(nickname, get_message)
+        #message2 = "{}: {}".format(nickname, get_message)
+        message1 = bytes(message1, encoding='utf8')
 
-# Definizione funzione kick_user
-"""def kick_user(name):
-    if name in nicknames:
-        #print(nicknames)
-        name_index = nicknames.index(name)
-        client_to_kick = clients[name_index]
-        clients.remove(client_to_kick)
-        print(clients)
-        nicknames.remove(name)
-        print(nicknames)"""
-        #broadcast(f'{name} was kicked by an admin!\n'.encode('utf-8'))
+        encrypted_message = cipher.encrypt(message1)  # send_message
+        out_message = encrypted_message.decode()
+        #print(encrypted_message)
+        #dummy = send_message
+        dummy = encrypted_message
+        ChatFill.configure(state="normal")
+        client.publish(ROOM, out_message)
+        ChatFill.insert(INSERT, str(message2))  # send_message
+        MassageFill.delete("1.0", END)
+        ChatFill.configure(state="disabled")
+
 
 # GUI
 window = Tk()
@@ -178,7 +135,8 @@ YChatFillScroll.place(y=0, x=550, height=250)
 XChatFillScroll = Scrollbar(Frame1, orient=HORIZONTAL)
 XChatFillScroll.place(y=251, x=0, width=550)
 
-ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set, xscrollcommand=XChatFillScroll.set)
+ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set,
+                xscrollcommand=XChatFillScroll.set)
 ChatFill.place(x=0, y=0, width=550, height=250)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
@@ -190,19 +148,19 @@ MassageFill.place(x=0, y=0, width=475, height=75)
 SendButton = Button(Frame2, text="Send", command=send_message)  # send_message
 SendButton.place(x=480, y=0, width=100, height=75)
 
-# Creazione flag per la connessione
-mqtt.Client.connected_flag = False
-
-# Creazione id
-#client_id = 'Client-' + ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
-
-# Istanzio l'oggetto    
-client = mqtt.Client()
+client_id = 'Client-' + \
+    ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
+client = mqtt.Client(client_id)
 
 # Specifico i metodi
-client.on_connect = on_connection
+client.on_connect = on_connect
 client.on_message = on_message
-client.on_disconnect = on_disconnect
+client.on_log = on_log
+
+# Metodo per criptare i messaggi
+#cipher_key = Fernet.generate_key()
+cipher_key = b'WDrevvK8ZrPn8gmiNFjcOp2xovBr40TCwJlZOyI94IY='
+cipher = Fernet(cipher_key)
 
 # Connessione al Broker
 client.connect(HOST, PORT)
@@ -212,19 +170,4 @@ client.loop_start()
 
 # Esecuzione della GUI
 window.mainloop()
-
-window.protocol("WM_DELETE_WINDOW", on_disconnect(client))
-
-
-#try:
-    #while client.connected_flag:
-        #print("Va tutto bene")
-        # time.sleep(1)
-        #client.connect(HOST, PORT)
-#except:
-    #print("Error finale")
-    #client.loop_stop()
-    #window.destroy()
-    #os._exit(0)
-    #on_disconnect(client)
-    #window.protocol("WM_DELETE_WINDOW", on_disconnect(client))
+#reset()
