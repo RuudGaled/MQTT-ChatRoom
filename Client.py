@@ -14,6 +14,7 @@ PORT = 1883
 ROOM = "provaChat"
 global dummy
 dummy = "\n"
+global nick 
 
 #def reset():
 #ret = client.publish(ROOM, "", 0, True)
@@ -25,6 +26,7 @@ def on_log(client, userdata, level, buf):
 
 def on_connect(client, userdata, flags, rc):
     global nickname
+    global nick
 
     status_decoder = {
         0: "Successfully Connected",
@@ -38,8 +40,9 @@ def on_connect(client, userdata, flags, rc):
     msg = tkinter.Tk()
     msg.withdraw()
 
-    nickname = simpledialog.askstring(
+    nickname = nick = simpledialog.askstring(
         "Nickname", "Please choose a nickname", parent=msg)
+    
     if nickname == 'admin':
         password = simpledialog.askstring(
             "Password", "Insert a password", parent=msg, show='*')
@@ -56,6 +59,7 @@ def on_connect(client, userdata, flags, rc):
     ChatFill.configure(state="normal")
     ChatFill.insert(INSERT, str(conn_text))
     ChatFill.configure(state="disabled")
+    print(nickname)
 
 
 def on_message(client, user_data, msg):
@@ -69,7 +73,8 @@ def on_message(client, user_data, msg):
     # messaggio == dummy: # FUNZIONA
     #print(msg.payload)
     #print(dummy)
-    #print(msg1)
+    print(msg1)
+    print(nick)
     #print(msg1[len(nickname)+2+6:])
     """if msg.payload == dummy:  # msg1 == dummy:  
         pass
@@ -95,12 +100,13 @@ def on_message(client, user_data, msg):
 
                 client.loop_stop()
                 client.disconnect()"""
-
+    print(nickname)
+    print(len(nickname))
     if msg1[len(nickname)+2:].startswith('/kick'):
         user = msg1[len(nickname)+2+6:]
         print(user)
-        print(nickname)
-        if user.strip('\n') == nickname:
+        print(nick)
+        if user.strip('\n') == nick:
             print("Mi disconnetto")
 
             message = nickname + " is disconnected"
