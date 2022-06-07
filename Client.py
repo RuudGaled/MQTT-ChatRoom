@@ -65,13 +65,13 @@ def on_message(client, user_data, msg):
 
     decrypted_message = cipher.decrypt(msg.payload)
     msg1 = decrypted_message.decode("utf-8")
-    m = "ahhiiii"
+    #m = "ahhiiii\n"
     # messaggio == dummy: # FUNZIONA
     #print(msg.payload)
     #print(dummy)
     #print(msg1)
     #print(msg1[len(nickname)+2+6:])
-    if msg.payload == dummy:  # msg1 == dummy:  
+    """if msg.payload == dummy:  # msg1 == dummy:  
         pass
     else:
         ChatFill.configure(state="normal")
@@ -94,24 +94,41 @@ def on_message(client, user_data, msg):
                 ChatFill.configure(state="disabled")
 
                 client.loop_stop()
-                client.disconnect()
+                client.disconnect()"""
 
-    """if msg1[len(nickname)+2:].startswith('/kick'):
+    if msg1[len(nickname)+2:].startswith('/kick'):
         user = msg1[len(nickname)+2+6:]
         print(user)
         print(nickname)
         if user.strip('\n') == nickname:
             print("Mi disconnetto")
+
+            message = nickname + " is disconnected"
+            send_message = m = "\n{}>> {}".format("System ", message)
+            send_message = bytes(send_message, encoding='utf8')
+            encrypted_message = cipher.encrypt(send_message)
+            out_message = encrypted_message.decode()
+
+            #send_message = "\n{}>> {}".format("System ", message)
+            client.publish(ROOM, out_message)
+
             ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, m)  # messaggio
-        ChatFill.configure(state="disabled")
+            ChatFill.insert(INSERT, str(m))
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
+
+            client.loop_stop()
+            client.disconnect()
+            #ChatFill.configure(state="normal")
+            #ChatFill.insert(INSERT, m)  # messaggio
+            #ChatFill.configure(state="disabled")
     
     elif msg.payload == dummy:
         pass
     else:
         ChatFill.configure(state="normal")
         ChatFill.insert(INSERT, str(msg1))  # messaggio
-        ChatFill.configure(state="disabled")"""
+        ChatFill.configure(state="disabled")
 
         
 
