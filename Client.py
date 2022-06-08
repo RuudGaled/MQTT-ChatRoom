@@ -75,6 +75,8 @@ def on_message(client, user_data, msg):
 
     decrypted_message = cipher.decrypt(msg.payload)
     msg1 = decrypted_message.decode("utf-8")
+    admin = msg1.partition(':')[0]
+    #print(admin)
     
     """if msg1.find('/kick') >= 0 and nickname == 'admin':
         user = msg1.partition('/kick ')[2]
@@ -83,7 +85,7 @@ def on_message(client, user_data, msg):
             time.sleep(5)
             window.destroy()"""
     
-    if msg1.find('/kick') >= 0:
+    """if msg1.find('/kick') >= 0:
         if nickname == 'admin':
             user = msg1.partition('/kick ')[2]
             if user.strip('\n') == nickname:
@@ -107,7 +109,58 @@ def on_message(client, user_data, msg):
     else:
         ChatFill.configure(state="normal")
         ChatFill.insert(INSERT, str(msg1))  # messaggio
+        ChatFill.configure(state="disabled")"""
+
+    """if msg.payload != dummy and msg1.find('/kick') >= 0:
+        if nickname == "admin":
+            user = msg1.partition('/kick ')[2]
+            if user.strip('\n') == nickname:
+                client.disconnect()
+        else: 
+            message = nickname + " you are not the chat admin!\n"
+            send_message = m = "\n{}>> {}".format("System", message)
+            send_message = bytes(send_message, encoding='utf8')
+            encrypted_message = cipher.encrypt(send_message)
+            out_message = encrypted_message.decode()
+            client.publish(ROOM, out_message) 
+
+            ChatFill.configure(state="normal")
+            ChatFill.insert(INSERT, str(m))
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
+    elif msg.payload == dummy:
+        pass
+    else:
+        ChatFill.configure(state="normal")
+        ChatFill.insert(INSERT, str(msg1))  # messaggio
+        ChatFill.configure(state="disabled")"""
+
+    if msg1.find('/kick') >= 0 and msg.payload != dummy:
+        if admin == "admin":
+            user = msg1.partition('/kick ')[2]
+            print(user)
+            if user.strip('\n') == nickname:
+                client.disconnect()
+        else:
+            message = admin + " you are not the chat admin!\n"
+            send_message = m = "\n{}>> {}".format("System", message)
+            send_message = bytes(send_message, encoding='utf8')
+            encrypted_message = cipher.encrypt(send_message)
+            dummy = encrypted_message
+            out_message = encrypted_message.decode()
+            client.publish(ROOM, out_message)
+
+            ChatFill.configure(state="normal")
+            ChatFill.insert(INSERT, str(m))
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
+    elif msg.payload == dummy:
+        pass
+    else:
+        ChatFill.configure(state="normal")
+        ChatFill.insert(INSERT, str(msg1))  # messaggio
         ChatFill.configure(state="disabled")
+
 
 def on_disconnect(client, userdata, rc):
 
