@@ -101,15 +101,17 @@ def on_message(client, user_data, msg):
                 client.loop_stop()
                 client.disconnect()"""
     print(nickname)
-    print(len(nickname))
-    if msg1[len(nickname)+2:].startswith('/kick'):
-        user = msg1[len(nickname)+2+6:]
+    #print(len(nickname))
+    #if msg1[len(nickname)+2:].startswith('/kick'):
+        #user = msg1[len(nickname)+2+6:]
+    if msg1.find('/kick') >= 0:
+        user = msg1.partition('/kick ')[2]
         print(user)
         print(nick)
         if user.strip('\n') == nick:
             print("Mi disconnetto")
 
-            message = nickname + " is disconnected"
+            message = nickname + " is disconnected\n"
             send_message = m = "\n{}>> {}".format("System ", message)
             send_message = bytes(send_message, encoding='utf8')
             encrypted_message = cipher.encrypt(send_message)
