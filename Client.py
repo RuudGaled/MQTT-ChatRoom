@@ -1,11 +1,13 @@
 import os
-from platform import mac_ver
+import time 
+import argon2
 import string
 import random as rd
 import tkinter.scrolledtext
 from tkinter import *
 import tkinter.scrolledtext
 from tkinter import simpledialog
+from settings import cipher_key, pwd
 from cryptography.fernet import Fernet
 import paho.mqtt.client as mqtt
 
@@ -14,10 +16,17 @@ PORT = 1883
 ROOM = "provaChat"
 global dummy
 dummy = "\n"
-global nick 
 
 #def reset():
 #ret = client.publish(ROOM, "", 0, True)
+
+argon2Hasher = argon2.PasswordHasher(
+    time_cost=3,  # number of iterations
+    memory_cost=64 * 1024,  # 64mb
+    parallelism=1,  # how many parallel threads to use
+    hash_len=32,  # the size of the derived key
+    salt_len=16  # the size of the random generated salt in bytes
+)
 
 
 def on_log(client, userdata, level, buf):
@@ -40,13 +49,13 @@ def on_connect(client, userdata, flags, rc):
     msg = tkinter.Tk()
     msg.withdraw()
 
-    nickname = nick = simpledialog.askstring(
+    nickname = simpledialog.askstring(
         "Nickname", "Please choose a nickname", parent=msg)
     
     if nickname == 'admin':
         password = simpledialog.askstring(
             "Password", "Insert a password", parent=msg, show='*')
-        if password == '1234':
+        if argon2Hasher.verify(pwd, password):
             pass
         else:
             client.loop_stop()
@@ -59,77 +68,39 @@ def on_connect(client, userdata, flags, rc):
     ChatFill.configure(state="normal")
     ChatFill.insert(INSERT, str(conn_text))
     ChatFill.configure(state="disabled")
-    print(nickname)
-
 
 def on_message(client, user_data, msg):
     global dummy
     global nickname
-    #messaggio = msg.payload.decode("utf-8")
 
     decrypted_message = cipher.decrypt(msg.payload)
     msg1 = decrypted_message.decode("utf-8")
-    #m = "ahhiiii\n"
-    # messaggio == dummy: # FUNZIONA
-    #print(msg.payload)
-    #print(dummy)
-    print(msg1)
-    print(nick)
-    #print(msg1[len(nickname)+2+6:])
-    """if msg.payload == dummy:  # msg1 == dummy:  
-        pass
-    else:
-        ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(msg1))  # messaggio
-        ChatFill.configure(state="disabled")
-
-        print(msg1[len(nickname)+2+6:])
-        if msg1[len(nickname)+2:].startswith('/kick'):  # messaggio
-            user = msg1[len(nickname)+2+5:]  # messaggio
-            print(user)
-            if user.strip('\n') == nickname:
-
-                message = nickname + " is disconnected"
-                send_message = "\n{}>> {}".format("System ", message)
-                client.publish(ROOM, send_message)
-                ChatFill.configure(state="normal")
-
-                ChatFill.insert(INSERT, str(send_message))
-                MassageFill.delete("1.0", END)
-                ChatFill.configure(state="disabled")
-
-                client.loop_stop()
-                client.disconnect()"""
-    print(nickname)
-    #print(len(nickname))
-    #if msg1[len(nickname)+2:].startswith('/kick'):
-        #user = msg1[len(nickname)+2+6:]
-    if msg1.find('/kick') >= 0:
+    
+    """if msg1.find('/kick') >= 0 and nickname == 'admin':
         user = msg1.partition('/kick ')[2]
-        print(user)
-        print(nick)
-        if user.strip('\n') == nick:
-            print("Mi disconnetto")
-
-            message = nickname + " is disconnected\n"
-            send_message = m = "\n{}>> {}".format("System ", message)
+        if user.strip('\n') == nickname:
+            client.disconnect()
+            time.sleep(5)
+            window.destroy()"""
+    
+    if msg1.find('/kick') >= 0:
+        if nickname == 'admin':
+            user = msg1.partition('/kick ')[2]
+            if user.strip('\n') == nickname:
+                client.disconnect()
+        else:
+            #print("NON SEI IN GRADO")
+            message = nickname + " you are not the chat admin!\n"
+            send_message = m = "\n{}>> {}".format("System", message)
             send_message = bytes(send_message, encoding='utf8')
             encrypted_message = cipher.encrypt(send_message)
             out_message = encrypted_message.decode()
-
-            #send_message = "\n{}>> {}".format("System ", message)
-            client.publish(ROOM, out_message)
+            client.publish(ROOM, out_message) 
 
             ChatFill.configure(state="normal")
             ChatFill.insert(INSERT, str(m))
             MassageFill.delete("1.0", END)
             ChatFill.configure(state="disabled")
-
-            client.loop_stop()
-            client.disconnect()
-            #ChatFill.configure(state="normal")
-            #ChatFill.insert(INSERT, m)  # messaggio
-            #ChatFill.configure(state="disabled")
     
     elif msg.payload == dummy:
         pass
@@ -138,7 +109,21 @@ def on_message(client, user_data, msg):
         ChatFill.insert(INSERT, str(msg1))  # messaggio
         ChatFill.configure(state="disabled")
 
-        
+def on_disconnect(client, userdata, rc):
+
+    message = nickname + " is disconnected\n"
+    send_message = m = "\n{}>> {}".format("System", message)
+    send_message = bytes(send_message, encoding='utf8')
+    encrypted_message = cipher.encrypt(send_message)
+    out_message = encrypted_message.decode()
+    client.publish(ROOM, out_message) 
+
+    ChatFill.configure(state="normal")
+    ChatFill.insert(INSERT, str(m))
+    MassageFill.delete("1.0", END)
+    ChatFill.configure(state="disabled")
+
+    client.loop_stop()
 
 def send_message():
     global dummy
@@ -149,17 +134,11 @@ def send_message():
     if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n':  # FUNZIONA
         pass
     else:
-        #send_message = "{}: {}".format(nickname, get_message) #\n
-        #send_message = bytes(send_message, encoding='utf8')
         message1 = message2 = "{}: {}".format(nickname, get_message)
-        #message1  = "{}: {}".format(nickname, get_message)
-        #message2 = "{}: {}".format(nickname, get_message)
         message1 = bytes(message1, encoding='utf8')
 
         encrypted_message = cipher.encrypt(message1)  # send_message
         out_message = encrypted_message.decode()
-        #print(encrypted_message)
-        #dummy = send_message
         dummy = encrypted_message
         ChatFill.configure(state="normal")
         client.publish(ROOM, out_message)
@@ -204,11 +183,10 @@ client = mqtt.Client(client_id)
 # Specifico i metodi
 client.on_connect = on_connect
 client.on_message = on_message
+client.on_disconnect = on_disconnect  
 client.on_log = on_log
 
 # Metodo per criptare i messaggi
-#cipher_key = Fernet.generate_key()
-cipher_key = b'WDrevvK8ZrPn8gmiNFjcOp2xovBr40TCwJlZOyI94IY='
 cipher = Fernet(cipher_key)
 
 # Connessione al Broker
