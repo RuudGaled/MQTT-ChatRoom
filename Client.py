@@ -80,12 +80,8 @@ def on_message(client, user_data, msg):
     if msg1.find('/kick') >= 0 and msg.payload != dummy:
         user = msg1.partition('/kick ')[2]
         if user.strip('\n') == nickname:
-            x = client.disconnect()
-            print(x)
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(x))
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
+            on_disconnect(client)
+            #client.disconnect()
     elif msg.payload == dummy:
         pass
     else:
@@ -94,21 +90,23 @@ def on_message(client, user_data, msg):
         ChatFill.configure(state="disabled")
 
 # Definizione della funzione on_disconnect
-def on_disconnect(client, userdata, rc):
+def on_disconnect(client):
     message = nickname + " is disconnected\n"
     send_message = m = "\n{}>> {}".format("System", message)
     send_message = bytes(send_message, encoding='utf8')
     encrypted_message = cipher.encrypt(send_message)
     out_message = encrypted_message.decode()
+    print(out_message)
     client.publish(ROOM, out_message) 
 
-    """ChatFill.configure(state="normal")
+    ChatFill.configure(state="normal")
     ChatFill.insert(INSERT, str(m))
     MassageFill.delete("1.0", END)
-    ChatFill.configure(state="disabled")"""
+    ChatFill.configure(state="disabled")
 
+    client.disconnect()
     client.loop_stop()
-    return m
+    #return m
 
 # Definizione della funzione send_message
 def send_message():
@@ -175,7 +173,7 @@ client = mqtt.Client(client_id)
 # Specifico i metodi
 client.on_connect = on_connect
 client.on_message = on_message
-client.on_disconnect = on_disconnect  
+#client.on_disconnect = on_disconnect  
 client.on_log = on_log
 
 # Metodo per criptare i messaggi
