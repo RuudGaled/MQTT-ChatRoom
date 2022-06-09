@@ -80,8 +80,14 @@ def on_message(client, user_data, msg):
     if msg1.find('/kick') >= 0 and msg.payload != dummy:
         user = msg1.partition('/kick ')[2]
         if user.strip('\n') == nickname:
-            on_disconnect(client)
+            on_disconnect(client, "kick")
             #client.disconnect()
+    elif msg1.find('/ban') >= 0 and msg.payload != dummy:
+        user = msg1.partition('/kick ')[2]
+        if user.strip('\n') == nickname:
+            on_disconnect(client, "ban")
+            with open('./bans.txt', 'a') as f:
+                f.write(f'{user}\n')
     elif msg.payload == dummy:
         pass
     else:
@@ -90,7 +96,7 @@ def on_message(client, user_data, msg):
         ChatFill.configure(state="disabled")
 
 # Definizione della funzione on_disconnect
-def on_disconnect(client):
+def on_disconnect(client, causa):
     message = nickname + " is disconnected\n"
     send_message = m = "\n{}>> {}".format("System", message)
     send_message = bytes(send_message, encoding='utf8')
@@ -119,6 +125,12 @@ def send_message():
         pass
     else:
         if get_message.find('/kick') >= 0 and nickname != "admin":
+            message = "System>> You are not the chat admin!\n"
+            ChatFill.configure(state="normal")
+            ChatFill.insert(INSERT, str(message))
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
+        elif get_message.find('/ban') >= 0 and nickname != "admin":
             message = "System>> You are not the chat admin!\n"
             ChatFill.configure(state="normal")
             ChatFill.insert(INSERT, str(message))
