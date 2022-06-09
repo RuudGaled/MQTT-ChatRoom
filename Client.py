@@ -136,24 +136,10 @@ def on_message(client, user_data, msg):
         ChatFill.configure(state="disabled")"""
 
     if msg1.find('/kick') >= 0 and msg.payload != dummy:
-        if admin == "admin":
-            user = msg1.partition('/kick ')[2]
-            print(user)
-            if user.strip('\n') == nickname:
-                client.disconnect()
-        else:
-            message = admin + " you are not the chat admin!\n"
-            send_message = m = "\n{}>> {}".format("System", message)
-            send_message = bytes(send_message, encoding='utf8')
-            encrypted_message = cipher.encrypt(send_message)
-            dummy = encrypted_message
-            out_message = encrypted_message.decode()
-            client.publish(ROOM, out_message)
-
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(m))
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
+        user = msg1.partition('/kick ')[2]
+        #print(user)
+        if user.strip('\n') == nickname:
+            client.disconnect()
     elif msg.payload == dummy:
         pass
     else:
@@ -187,17 +173,24 @@ def send_message():
     if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n':  # FUNZIONA
         pass
     else:
-        message1 = message2 = "{}: {}".format(nickname, get_message)
-        message1 = bytes(message1, encoding='utf8')
+        if get_message.find('/kick') >= 0 and nickname != "admin":
+            message = "System>> You are not the chat admin!\n"
+            ChatFill.configure(state="normal")
+            ChatFill.insert(INSERT, str(message))
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
+        else:
+            message1 = message2 = "{}: {}".format(nickname, get_message)
+            message1 = bytes(message1, encoding='utf8')
 
-        encrypted_message = cipher.encrypt(message1)  # send_message
-        out_message = encrypted_message.decode()
-        dummy = encrypted_message
-        ChatFill.configure(state="normal")
-        client.publish(ROOM, out_message)
-        ChatFill.insert(INSERT, str(message2))  # send_message
-        MassageFill.delete("1.0", END)
-        ChatFill.configure(state="disabled")
+            encrypted_message = cipher.encrypt(message1)  # send_message
+            out_message = encrypted_message.decode()
+            dummy = encrypted_message
+            ChatFill.configure(state="normal")
+            client.publish(ROOM, out_message)
+            ChatFill.insert(INSERT, str(message2))  # send_message
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
 
 
 # GUI
