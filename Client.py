@@ -32,7 +32,7 @@ argon2Hasher = argon2.PasswordHasher(
 def on_log(client, userdata, level, buf):
     print(buf)
 
-
+# Definizione della funzione on_connect
 def on_connect(client, userdata, flags, rc):
     global nickname
     global nick
@@ -69,77 +69,23 @@ def on_connect(client, userdata, flags, rc):
     ChatFill.insert(INSERT, str(conn_text))
     ChatFill.configure(state="disabled")
 
+# Definizione della funzione on_message
 def on_message(client, user_data, msg):
     global dummy
     global nickname
 
     decrypted_message = cipher.decrypt(msg.payload)
     msg1 = decrypted_message.decode("utf-8")
-    admin = msg1.partition(':')[0]
-    #print(admin)
-    
-    """if msg1.find('/kick') >= 0 and nickname == 'admin':
-        user = msg1.partition('/kick ')[2]
-        if user.strip('\n') == nickname:
-            client.disconnect()
-            time.sleep(5)
-            window.destroy()"""
-    
-    """if msg1.find('/kick') >= 0:
-        if nickname == 'admin':
-            user = msg1.partition('/kick ')[2]
-            if user.strip('\n') == nickname:
-                client.disconnect()
-        else:
-            #print("NON SEI IN GRADO")
-            message = nickname + " you are not the chat admin!\n"
-            send_message = m = "\n{}>> {}".format("System", message)
-            send_message = bytes(send_message, encoding='utf8')
-            encrypted_message = cipher.encrypt(send_message)
-            out_message = encrypted_message.decode()
-            client.publish(ROOM, out_message) 
-
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(m))
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
-    
-    elif msg.payload == dummy:
-        pass
-    else:
-        ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(msg1))  # messaggio
-        ChatFill.configure(state="disabled")"""
-
-    """if msg.payload != dummy and msg1.find('/kick') >= 0:
-        if nickname == "admin":
-            user = msg1.partition('/kick ')[2]
-            if user.strip('\n') == nickname:
-                client.disconnect()
-        else: 
-            message = nickname + " you are not the chat admin!\n"
-            send_message = m = "\n{}>> {}".format("System", message)
-            send_message = bytes(send_message, encoding='utf8')
-            encrypted_message = cipher.encrypt(send_message)
-            out_message = encrypted_message.decode()
-            client.publish(ROOM, out_message) 
-
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(m))
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
-    elif msg.payload == dummy:
-        pass
-    else:
-        ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(msg1))  # messaggio
-        ChatFill.configure(state="disabled")"""
 
     if msg1.find('/kick') >= 0 and msg.payload != dummy:
         user = msg1.partition('/kick ')[2]
-        #print(user)
         if user.strip('\n') == nickname:
-            client.disconnect()
+            x = client.disconnect()
+            print(x)
+            ChatFill.configure(state="normal")
+            ChatFill.insert(INSERT, str(x))
+            MassageFill.delete("1.0", END)
+            ChatFill.configure(state="disabled")
     elif msg.payload == dummy:
         pass
     else:
@@ -147,9 +93,8 @@ def on_message(client, user_data, msg):
         ChatFill.insert(INSERT, str(msg1))  # messaggio
         ChatFill.configure(state="disabled")
 
-
+# Definizione della funzione on_disconnect
 def on_disconnect(client, userdata, rc):
-
     message = nickname + " is disconnected\n"
     send_message = m = "\n{}>> {}".format("System", message)
     send_message = bytes(send_message, encoding='utf8')
@@ -157,20 +102,22 @@ def on_disconnect(client, userdata, rc):
     out_message = encrypted_message.decode()
     client.publish(ROOM, out_message) 
 
-    ChatFill.configure(state="normal")
+    """ChatFill.configure(state="normal")
     ChatFill.insert(INSERT, str(m))
     MassageFill.delete("1.0", END)
-    ChatFill.configure(state="disabled")
+    ChatFill.configure(state="disabled")"""
 
     client.loop_stop()
+    return m
 
+# Definizione della funzione send_message
 def send_message():
     global dummy
     global nickname
 
     get_message = MassageFill.get("1.0", END)
     get_message.encode('utf-8')
-    if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n':  # FUNZIONA
+    if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n': 
         pass
     else:
         if get_message.find('/kick') >= 0 and nickname != "admin":
@@ -183,15 +130,14 @@ def send_message():
             message1 = message2 = "{}: {}".format(nickname, get_message)
             message1 = bytes(message1, encoding='utf8')
 
-            encrypted_message = cipher.encrypt(message1)  # send_message
+            encrypted_message = cipher.encrypt(message1) 
             out_message = encrypted_message.decode()
             dummy = encrypted_message
             ChatFill.configure(state="normal")
             client.publish(ROOM, out_message)
-            ChatFill.insert(INSERT, str(message2))  # send_message
+            ChatFill.insert(INSERT, str(message2))  
             MassageFill.delete("1.0", END)
             ChatFill.configure(state="disabled")
-
 
 # GUI
 window = Tk()
