@@ -52,6 +52,14 @@ def on_connect(client, userdata, flags, rc):
     nickname = simpledialog.askstring(
         "Nickname", "Please choose a nickname", parent=msg)
     
+    # Controllo che il nick non sia bannato
+    with open('./bans.txt', 'r') as f:
+        bans = f.readlines()
+
+    if nickname+'\n' in bans:
+        client.loop_stop()
+        client.disconnect()
+
     if nickname == 'admin':
         password = simpledialog.askstring(
             "Password", "Insert a password", parent=msg, show='*')
@@ -83,11 +91,13 @@ def on_message(client, user_data, msg):
             on_disconnect(client, "kick")
             #client.disconnect()
     elif msg1.find('/ban') >= 0 and msg.payload != dummy:
-        user = msg1.partition('/kick ')[2]
+        user = msg1.partition('/ban ')[2]
         if user.strip('\n') == nickname:
-            on_disconnect(client, "ban")
+            
             with open('./bans.txt', 'a') as f:
                 f.write(f'{user}\n')
+
+            on_disconnect(client, "ban")
     elif msg.payload == dummy:
         pass
     else:
@@ -97,7 +107,12 @@ def on_message(client, user_data, msg):
 
 # Definizione della funzione on_disconnect
 def on_disconnect(client, causa):
-    message = nickname + " is disconnected\n"
+    if causa == "ban":
+        message = nickname + " è stato bannato\n"
+    else:
+        message = nickname + " is disconnected\n"
+
+    
     send_message = m = "\n{}>> {}".format("System", message)
     send_message = bytes(send_message, encoding='utf8')
     encrypted_message = cipher.encrypt(send_message)
