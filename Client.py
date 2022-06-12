@@ -60,6 +60,7 @@ def on_connect(client, userdata, flags, rc):
         client.loop_stop()
         client.disconnect()
 
+    # Chiedo la password
     if nickname == 'admin':
         password = simpledialog.askstring(
             "Password", "Insert a password", parent=msg, show='*')
@@ -182,20 +183,27 @@ XChatFillScroll.place(y=251, x=0, width=550)
 
 ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set,
                 xscrollcommand=XChatFillScroll.set)
+#ChatFill = tkinter.scrolledtext.ScrolledText(window)
 ChatFill.place(x=0, y=0, width=550, height=250)
+#ChatFill.pack(padx=20, pady=5)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
 XChatFillScroll.config(command=ChatFill.xview)
 
-MassageFill = Text(Frame2, font=("", 16))
+MassageFill = Text(Frame2, font=("Arial", 16))
 MassageFill.place(x=0, y=0, width=475, height=75)
 
 SendButton = Button(Frame2, text="Send", command=send_message)  # send_message
 SendButton.place(x=480, y=0, width=100, height=75)
 
+
+
 client_id = 'Client-' + \
     ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
 client = mqtt.Client(client_id)
+
+# Condizione di chiusura
+window.protocol("WM_DELETE_WINDOW", on_disconnect(client, "exit"))
 
 # Specifico i metodi
 client.on_connect = on_connect
