@@ -58,26 +58,28 @@ def on_connect(client, userdata, flags, rc):
         bans = f.readlines()
 
     if nickname+'\n' in bans:
-        client.loop_stop()
-        client.disconnect()
+        #client.loop_stop()
+        #client.disconnect()
+        on_disconnect("ban")
 
     # Chiedo la password
     if nickname == 'admin':
         password = simpledialog.askstring(
             "Password", "Insert a password", parent=msg, show='*')
-        if argon2Hasher.verify(pwd, password):
-            pass
-        else:
-            client.loop_stop()
-            client.disconnect()
+        try:
+            argon2Hasher.verify(pwd, password)
 
-    conn_text = ("System>> {} has connected to broker with status: \n\t{}.\n".format(nickname,
+            conn_text = ("System>> {} has connected to broker with status: \n\t{}.\n".format(nickname,
                                                                                      status_decoder.get(rc)))
 
-    client.subscribe(ROOM)
-    ChatFill.configure(state="normal")
-    ChatFill.insert(INSERT, str(conn_text))
-    ChatFill.configure(state="disabled")
+            client.subscribe(ROOM)
+            ChatFill.configure(state="normal")
+            ChatFill.insert(INSERT, str(conn_text))
+            ChatFill.configure(state="disabled")
+        except:
+            on_disconnect("pass")
+
+    
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
@@ -109,9 +111,10 @@ def on_message(client, user_data, msg):
 
 # Definizione della funzione on_disconnect
 def on_disconnect(causa):
-
     if causa == "ban":
-        message = nickname + " è stato bannato\n\n"
+        message = nickname + " è stato bannato dall'admin della chat!\n\n"
+    elif causa == "pass":
+        message = nickname + " hai sbagliato password!\nChiudi la chat e connettiti di nuovo.\n"
     else:
         message = nickname +  " is disconnected\n\n"
 
@@ -123,15 +126,19 @@ def on_disconnect(causa):
     print(out_message)
     client.publish(ROOM, out_message) 
 
-    if causa != "exit":
+    if causa == "exit":
+        client.disconnect()
+        client.loop_stop()
+        os._exit(0)
+    else:
         ChatFill.configure(state="normal")
         ChatFill.insert(INSERT, str(m))
         MassageFill.delete("1.0", END)
         ChatFill.configure(state="disabled")
 
-    client.disconnect()
-    client.loop_stop()
-    os._exit(0)
+        client.disconnect()
+        client.loop_stop()
+    #os._exit(0)
     #sys.exit(0)
     #return m
 
@@ -182,14 +189,14 @@ Frame2 = LabelFrame(window, text="Enter Massage", width=600, height=100)
 Frame2.place(y=300, x=0)
 
 YChatFillScroll = Scrollbar(Frame1)
-YChatFillScroll.place(y=0, x=550, height=250)
+YChatFillScroll.place(y=0, x=570, height=250)
 XChatFillScroll = Scrollbar(Frame1, orient=HORIZONTAL)
-XChatFillScroll.place(y=251, x=0, width=550)
+XChatFillScroll.place(y=251, x=0, width=570)
 
 ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set,
                 xscrollcommand=XChatFillScroll.set)
 #ChatFill = tkinter.scrolledtext.ScrolledText(window)
-ChatFill.place(x=0, y=0, width=550, height=250)
+ChatFill.place(x=0, y=0, width=570, height=250)
 #ChatFill.pack(padx=20, pady=5)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
@@ -201,13 +208,10 @@ MassageFill.place(x=0, y=0, width=475, height=75)
 SendButton = Button(Frame2, text="Send", command=send_message)  # send_message
 SendButton.place(x=480, y=0, width=100, height=75)
 
-
-
+# Creazione id univoco per il Client
 client_id = 'Client-' + \
     ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
 client = mqtt.Client(client_id)
-
-
 
 # Specifico i metodi
 client.on_connect = on_connect
@@ -228,5 +232,5 @@ client.loop_start()
 window.mainloop()
 #reset()
 
-# Condizione di chiusura
+# Chiusura della Chat
 window.protocol("WM_DELETE_WINDOW", on_disconnect("exit"))
