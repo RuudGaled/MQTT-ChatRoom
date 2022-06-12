@@ -1,5 +1,6 @@
 import os
 import time 
+import sys
 import argon2
 import string
 import random as rd
@@ -89,7 +90,7 @@ def on_message(client, user_data, msg):
     if msg1.find('/kick') >= 0 and msg.payload != dummy:
         user = msg1.partition('/kick ')[2]
         if user.strip('\n') == nickname:
-            on_disconnect(client, "kick")
+            on_disconnect("kick")
             #client.disconnect()
     elif msg1.find('/ban') >= 0 and msg.payload != dummy:
         user = msg1.partition('/ban ')[2]
@@ -98,7 +99,7 @@ def on_message(client, user_data, msg):
             with open('./bans.txt', 'a') as f:
                 f.write(f'{user}\n')
 
-            on_disconnect(client, "ban")
+            on_disconnect("ban")
     elif msg.payload == dummy:
         pass
     else:
@@ -107,11 +108,12 @@ def on_message(client, user_data, msg):
         ChatFill.configure(state="disabled")
 
 # Definizione della funzione on_disconnect
-def on_disconnect(client, causa):
+def on_disconnect(causa):
+
     if causa == "ban":
-        message = nickname + " è stato bannato\n"
+        message = nickname + " è stato bannato\n\n"
     else:
-        message = nickname + " is disconnected\n"
+        message = nickname +  " is disconnected\n\n"
 
     
     send_message = m = "\n{}>> {}".format("System", message)
@@ -121,13 +123,16 @@ def on_disconnect(client, causa):
     print(out_message)
     client.publish(ROOM, out_message) 
 
-    ChatFill.configure(state="normal")
-    ChatFill.insert(INSERT, str(m))
-    MassageFill.delete("1.0", END)
-    ChatFill.configure(state="disabled")
+    if causa != "exit":
+        ChatFill.configure(state="normal")
+        ChatFill.insert(INSERT, str(m))
+        MassageFill.delete("1.0", END)
+        ChatFill.configure(state="disabled")
 
     client.disconnect()
     client.loop_stop()
+    os._exit(0)
+    #sys.exit(0)
     #return m
 
 # Definizione della funzione send_message
@@ -202,8 +207,7 @@ client_id = 'Client-' + \
     ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
 client = mqtt.Client(client_id)
 
-# Condizione di chiusura
-window.protocol("WM_DELETE_WINDOW", on_disconnect(client, "exit"))
+
 
 # Specifico i metodi
 client.on_connect = on_connect
@@ -223,3 +227,6 @@ client.loop_start()
 # Esecuzione della GUI
 window.mainloop()
 #reset()
+
+# Condizione di chiusura
+window.protocol("WM_DELETE_WINDOW", on_disconnect("exit"))
