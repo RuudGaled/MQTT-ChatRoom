@@ -18,9 +18,6 @@ ROOM = "provaChat"
 global dummy
 dummy = "\n"
 
-#def reset():
-#ret = client.publish(ROOM, "", 0, True)
-
 argon2Hasher = argon2.PasswordHasher(
     time_cost=3,  # number of iterations
     memory_cost=64 * 1024,  # 64mb
@@ -34,9 +31,6 @@ def write_onscreen(mess):
     ChatFill.insert(INSERT, str(mess))
     MassageFill.delete("1.0", END)
     ChatFill.configure(state="disabled")
-
-def on_log(client, userdata, level, buf):
-    print(buf)
 
 # Definizione della funzione on_connect
 def on_connect(client, userdata, flags, rc):
@@ -202,7 +196,7 @@ XChatFillScroll.config(command=ChatFill.xview)
 MassageFill = Text(Frame2, font=("Arial", 16))
 MassageFill.place(x=0, y=0, width=475, height=75)
 
-SendButton = Button(Frame2, text="Send", command=send_message)  # send_message
+SendButton = Button(Frame2, text="Send", command=send_message)  
 SendButton.place(x=480, y=0, width=100, height=75)
 
 # Creazione id univoco per il Client
@@ -214,9 +208,8 @@ client = mqtt.Client(client_id)
 client.on_connect = on_connect
 client.on_message = on_message
 #client.on_disconnect = disconnessione  
-client.on_log = on_log
 
-# Metodo per criptare i messaggi
+# Metodo per cifrare i messaggi
 cipher = Fernet(cipher_key)
 
 # Connessione al Broker
@@ -227,7 +220,6 @@ client.loop_start()
 
 # Esecuzione della GUI
 window.mainloop()
-#reset()
 
 # Chiusura della Chat
 window.protocol("WM_DELETE_WINDOW", disconnessione("exit"))
