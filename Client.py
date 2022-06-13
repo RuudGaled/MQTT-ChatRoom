@@ -59,6 +59,14 @@ def on_connect(client, userdata, flags, rc):
     if nickname+'\n' in bans:
         disconnessione("ban")
 
+    # Controllo che non ci sia già lo stesso nickname
+    with open('./online.txt', 'r') as f:
+        online = f.readlines()
+    
+    if nickname+'\n' in online:
+        flag = False
+        disconnessione("same")
+
     # Chiedo la password
     if nickname == 'admin':
         password = simpledialog.askstring(
@@ -75,6 +83,8 @@ def on_connect(client, userdata, flags, rc):
 
         client.subscribe(ROOM)
         write_onscreen(conn_text)
+        with open('./online.txt', 'a') as f:
+            f.write(f'{nickname}\n')
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
@@ -115,6 +125,8 @@ def disconnessione(causa):
         message = nickname + " è stato bannato dall'admin della chat!\n\n"
     elif causa == "pass":
         message = nickname + " hai sbagliato password!\n\tChiudi la chat e connettiti di nuovo.\n"
+    elif causa == "same":
+        message = nickname + " nickname già in uso!\n\tChiudi la chat e connettiti con un nuovo nickname\n"
     else:
         message = nickname +  " is disconnected\n\n"
 
@@ -129,6 +141,18 @@ def disconnessione(causa):
     if causa == "exit":
         client.disconnect()
         client.loop_stop()
+
+        with open("./online.txt", 'r+') as input:
+            with open("temp.txt", "w") as output:
+                # iterate all lines from file
+                for line in input:
+                    # if text matches then don't write it
+                    if line.strip("\n") != nickname:
+                        output.write(line)
+
+        # replace file with original name
+        os.replace('temp.txt', 'online.txt')
+
         os._exit(0)
     else:
         write_onscreen(m)
