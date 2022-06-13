@@ -29,6 +29,11 @@ argon2Hasher = argon2.PasswordHasher(
     salt_len=16  # the size of the random generated salt in bytes
 )
 
+def write_onscreen(mess):
+    ChatFill.configure(state="normal")
+    ChatFill.insert(INSERT, str(mess))
+    MassageFill.delete("1.0", END)
+    ChatFill.configure(state="disabled")
 
 def on_log(client, userdata, level, buf):
     print(buf)
@@ -36,7 +41,7 @@ def on_log(client, userdata, level, buf):
 # Definizione della funzione on_connect
 def on_connect(client, userdata, flags, rc):
     global nickname
-    global nick
+    flag = True
 
     status_decoder = {
         0: "Successfully Connected",
@@ -58,9 +63,7 @@ def on_connect(client, userdata, flags, rc):
         bans = f.readlines()
 
     if nickname+'\n' in bans:
-        #client.loop_stop()
-        #client.disconnect()
-        on_disconnect("ban")
+        disconnessione("ban")
 
     # Chiedo la password
     if nickname == 'admin':
@@ -68,18 +71,16 @@ def on_connect(client, userdata, flags, rc):
             "Password", "Insert a password", parent=msg, show='*')
         try:
             argon2Hasher.verify(pwd, password)
-
-            conn_text = ("System>> {} has connected to broker with status: \n\t{}.\n".format(nickname,
-                                                                                     status_decoder.get(rc)))
-
-            client.subscribe(ROOM)
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(conn_text))
-            ChatFill.configure(state="disabled")
         except:
-            on_disconnect("pass")
+            flag = False
+            disconnessione("pass")
 
-    
+    if flag == True:
+        conn_text = ("System>> {} has connected to broker with status: \n\t{}.\n".format(nickname,
+                                                                                         status_decoder.get(rc)))
+
+        client.subscribe(ROOM)
+        write_onscreen(conn_text)
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
@@ -92,8 +93,7 @@ def on_message(client, user_data, msg):
     if msg1.find('/kick') >= 0 and msg.payload != dummy:
         user = msg1.partition('/kick ')[2]
         if user.strip('\n') == nickname:
-            on_disconnect("kick")
-            #client.disconnect()
+            disconnessione("kick")
     elif msg1.find('/ban') >= 0 and msg.payload != dummy:
         user = msg1.partition('/ban ')[2]
         if user.strip('\n') == nickname:
@@ -101,46 +101,47 @@ def on_message(client, user_data, msg):
             with open('./bans.txt', 'a') as f:
                 f.write(f'{user}\n')
 
-            on_disconnect("ban")
+            disconnessione("ban")
     elif msg.payload == dummy:
         pass
     else:
-        ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(msg1))  # messaggio
-        ChatFill.configure(state="disabled")
+        write_onscreen(msg1)
 
-# Definizione della funzione on_disconnect
-def on_disconnect(causa):
+def crittografia(send_message):
+    send_message = bytes(send_message, encoding='utf8')
+    encrypted_message = cipher.encrypt(send_message)
+    out_message = encrypted_message.decode()
+    client.publish(ROOM, out_message)
+
+    return encrypted_message
+
+# Definizione della funzione disconnessione
+def disconnessione(causa):
     if causa == "ban":
         message = nickname + " è stato bannato dall'admin della chat!\n\n"
     elif causa == "pass":
-        message = nickname + " hai sbagliato password!\nChiudi la chat e connettiti di nuovo.\n"
+        message = nickname + " hai sbagliato password!\n\tChiudi la chat e connettiti di nuovo.\n"
     else:
         message = nickname +  " is disconnected\n\n"
 
     
     send_message = m = "\n{}>> {}".format("System", message)
-    send_message = bytes(send_message, encoding='utf8')
+    crittografia(send_message)
+    """send_message = bytes(send_message, encoding='utf8')
     encrypted_message = cipher.encrypt(send_message)
     out_message = encrypted_message.decode()
-    print(out_message)
-    client.publish(ROOM, out_message) 
+    client.publish(ROOM, out_message)""" 
 
     if causa == "exit":
         client.disconnect()
         client.loop_stop()
         os._exit(0)
     else:
-        ChatFill.configure(state="normal")
-        ChatFill.insert(INSERT, str(m))
+        write_onscreen(m)
         MassageFill.delete("1.0", END)
-        ChatFill.configure(state="disabled")
 
         client.disconnect()
         client.loop_stop()
-    #os._exit(0)
-    #sys.exit(0)
-    #return m
 
 # Definizione della funzione send_message
 def send_message():
@@ -154,28 +155,24 @@ def send_message():
     else:
         if get_message.find('/kick') >= 0 and nickname != "admin":
             message = "System>> You are not the chat admin!\n"
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(message))
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
+            write_onscreen(message)
+            #MassageFill.delete("1.0", END)
         elif get_message.find('/ban') >= 0 and nickname != "admin":
             message = "System>> You are not the chat admin!\n"
-            ChatFill.configure(state="normal")
-            ChatFill.insert(INSERT, str(message))
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
+            write_onscreen(message)
+            #MassageFill.delete("1.0", END)
         else:
             message1 = message2 = "{}: {}".format(nickname, get_message)
-            message1 = bytes(message1, encoding='utf8')
+            #message1 = bytes(message1, encoding='utf8')
 
-            encrypted_message = cipher.encrypt(message1) 
-            out_message = encrypted_message.decode()
-            dummy = encrypted_message
-            ChatFill.configure(state="normal")
-            client.publish(ROOM, out_message)
-            ChatFill.insert(INSERT, str(message2))  
-            MassageFill.delete("1.0", END)
-            ChatFill.configure(state="disabled")
+            #encrypted_message = cipher.encrypt(message1) 
+            #out_message = encrypted_message.decode()
+            x = crittografia(message1)
+            dummy = x
+            #dummy = encrypted_message
+            #client.publish(ROOM, out_message)
+            write_onscreen(message2)
+            #MassageFill.delete("1.0", END)
 
 # GUI
 window = Tk()
@@ -216,7 +213,7 @@ client = mqtt.Client(client_id)
 # Specifico i metodi
 client.on_connect = on_connect
 client.on_message = on_message
-#client.on_disconnect = on_disconnect  
+#client.on_disconnect = disconnessione  
 client.on_log = on_log
 
 # Metodo per criptare i messaggi
@@ -233,4 +230,4 @@ window.mainloop()
 #reset()
 
 # Chiusura della Chat
-window.protocol("WM_DELETE_WINDOW", on_disconnect("exit"))
+window.protocol("WM_DELETE_WINDOW", disconnessione("exit"))
