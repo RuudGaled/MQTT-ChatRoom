@@ -57,6 +57,7 @@ def on_connect(client, userdata, flags, rc):
         bans = f.readlines()
 
     if nickname+'\n' in bans:
+        flag = False
         disconnessione("ban")
 
     # Controllo che non ci sia già lo stesso nickname
@@ -122,6 +123,7 @@ def crittografia(send_message):
 # Definizione della funzione disconnessione
 def disconnessione(causa):
     send_to_all = "True"
+    search = False
 
     if causa == "pass":
         send_to_all = "False"
@@ -139,13 +141,22 @@ def disconnessione(causa):
 
     send_message = m = "\n{}>> {}".format("System", message)
 
+    # Controllo che il nick non sia bannato
+    with open('./bans.txt', 'r') as f:
+        bans = f.readlines()
+
+    if nickname+'\n' in bans:
+        search = True
+
     if send_to_all == "True":
-
-        send_message = bytes(send_message, encoding='utf8')
-        encrypted_message = cipher.encrypt(send_message)
-        out_message = encrypted_message.decode()
-        client.publish(ROOM, out_message)
-
+        if search == False:
+            send_message = bytes(send_message, encoding='utf8')
+            encrypted_message = cipher.encrypt(send_message)
+            out_message = encrypted_message.decode()
+            client.publish(ROOM, out_message)
+        else:
+            pass
+            
         if causa == "exit":
             client.disconnect()
             client.loop_stop()
@@ -162,6 +173,11 @@ def disconnessione(causa):
             os.replace('temp.txt', 'online.txt')
 
             os._exit(0)
+        else:
+            write_onscreen(m)
+
+            client.disconnect()
+            client.loop_stop()
     else:
         write_onscreen(m)
         MassageFill.delete("1.0", END)
@@ -180,11 +196,11 @@ def send_message():
         pass
     else:
         if get_message.find('/kick') >= 0 and nickname != "admin":
-            message = "System>> You are not the chat admin!\n"
+            message = "\nSystem>> You are not the chat admin!\n"
             write_onscreen(message)
             #MassageFill.delete("1.0", END)
         elif get_message.find('/ban') >= 0 and nickname != "admin":
-            message = "System>> You are not the chat admin!\n"
+            message = "\nSystem>> You are not the chat admin!\n"
             write_onscreen(message)
             #MassageFill.delete("1.0", END)
         else:
@@ -239,7 +255,6 @@ client = mqtt.Client(client_id)
 # Specifico i metodi
 client.on_connect = on_connect
 client.on_message = on_message
-#client.on_disconnect = disconnessione  
 
 # Metodo per cifrare i messaggi
 cipher = Fernet(cipher_key)
