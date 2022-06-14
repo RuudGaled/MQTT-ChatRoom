@@ -1,4 +1,5 @@
 import os
+import sys
 import argon2
 import string
 import random as rd
@@ -16,13 +17,14 @@ global dummy
 dummy = "\n"
 
 argon2Hasher = argon2.PasswordHasher(
-    time_cost=3,  # number of iterations
+    time_cost=3,            # number of iterations
     memory_cost=64 * 1024,  # 64mb
-    parallelism=1,  # how many parallel threads to use
-    hash_len=32,  # the size of the derived key
-    salt_len=16  # the size of the random generated salt in bytes
+    parallelism=1,          # how many parallel threads to use
+    hash_len=32,            # the size of the derived key
+    salt_len=16             # the size of the random generated salt in bytes
 )
 
+# Definizione funzione write_onscreen
 def write_onscreen(message):
     ChatFill.configure(state="normal")
     ChatFill.insert(INSERT, str(message))
@@ -46,7 +48,7 @@ def on_connect(client, userdata, flags, rc):
     msg.withdraw()
 
     nickname = simpledialog.askstring(
-        "Nickname", "Please choose a nickname", parent=msg)
+        "Nickname", "Scegli un nickname", parent=msg)
     
     # Controllo che il nick non sia bannato
     with open('./bans.txt', 'r') as f:
@@ -67,7 +69,7 @@ def on_connect(client, userdata, flags, rc):
     # Chiedo la password
     if nickname == 'admin':
         password = simpledialog.askstring(
-            "Password", "Insert a password", parent=msg, show='*')
+            "Password", "Iserisci la password", parent=msg, show='*')
         try:
             argon2Hasher.verify(pwd, password)
         except:
@@ -75,7 +77,7 @@ def on_connect(client, userdata, flags, rc):
             disconnection("pass_error")
 
     if flag == True:
-        conn_text = ("System>> {} has connected to broker with status: \n\t{}.\n".format(nickname,
+        conn_text = ("System>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
                                                                                          status_decoder.get(rc)))
 
         client.subscribe(ROOM)
@@ -87,21 +89,25 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, user_data, msg):
     global dummy
     global nickname
-
     decrypted_message = cipher.decrypt(msg.payload)
     message = decrypted_message.decode("utf-8")
 
+    # Verifica della presenza ed esecuzione del comando "kick"
     if message.find('/kick') >= 0 and msg.payload != dummy:
         user = message.partition('/kick ')[2]
         if user.strip('\n') == nickname:
+            # L'utente viene viene disconnesso
             disconnection("kick")
+    # Verifica della presenza ed esecuzione del comando "kick"
     elif message.find('/ban') >= 0 and msg.payload != dummy:
         user = message.partition('/ban ')[2]
         if user.strip('\n') == nickname:
             
+            # Il nickname viene inserito nella lista dei ban
             with open('./bans.txt', 'a') as f:
                 f.write(f'{user}\n')
 
+            # L'utente viene viene disconnesso
             disconnection("ban")
     elif msg.payload == dummy:
         pass
@@ -120,18 +126,18 @@ def send_message():
     if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n': 
         pass
     else:
-        # Controllo la presenza del comando "kick" e se è stato digitato dall'admin
+        #  Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
         if get_message.find('/kick') >= 0 and nickname != "admin":
             message = "\nSystem>> You are not the chat admin!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
-        # Controllo la presenza del comando "ban" e se è stato digitato dall'admin
+        # Si controlla l'utilizzo errato del comando "ban" da parte di utenti non admin
         elif get_message.find('/ban') >= 0 and nickname != "admin":
             message = "\nSystem>> You are not the chat admin!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         else:
-            # Invio il messaggio nella chat
+            # Il messaggio viene cifrato e inviato nella chat
             message1 = message2 = "{}: {}".format(nickname, get_message)
             message1 = bytes(message1, encoding='utf8')
             encrypted_message = cipher.encrypt(message1) 
@@ -185,33 +191,44 @@ def disconnection(flag):
         else:
             pass
 
-        # 
+        # Si controlla se la chat è stata chiusa per volere dell'utente
         if flag == "exit":
+            # Disconnessione dal Broker
             client.disconnect()
+            # Si ferma l'esecuzione del Client
             client.loop_stop()
 
+            # Viene cancellato l'utente che non è più online
             with open("./online.txt", 'r+') as input:
                 with open("temp.txt", "w") as output:
-                    # iterate all lines from file
+                    # si itera su tutte le righe di "input"
                     for line in input:
-                        # if text matches then don't write it
+                        # se il nickname corrisponde, non si scrive
                         if line.strip("\n") != nickname:
                             output.write(line)
 
-            # replace file with original name
+            #Si sostituisce il file con il nome originale
             os.replace('temp.txt', 'online.txt')
 
-            os._exit(0)
+            # Si ferma l'esecuzione del processo
+            #os._exit(0)
+            sys.exit(0)
         else:
+            # Il messaggio viene visualizzato solo dall'utente disconnesso
             write_onscreen(m)
 
+            # Disconnessione dal Broker
             client.disconnect()
+            # Si ferma l'esecuzione del Client
             client.loop_stop()
     else:
+        # Il messaggio viene visualizzato solo dall'utente disconnesso
         write_onscreen(m)
-        MassageFill.delete("1.0", END)
+        #MassageFill.delete("1.0", END)
 
+        # Disconnessione dal Broker
         client.disconnect()
+        # Si ferma l'esecuzione del Client
         client.loop_stop()
 
 # GUI
