@@ -121,39 +121,47 @@ def crittografia(send_message):
 
 # Definizione della funzione disconnessione
 def disconnessione(causa):
-    if causa == "ban":
-        message = nickname + " è stato bannato dall'admin della chat!\n\n"
-    elif causa == "pass":
+    send_to_all = "True"
+
+    if causa == "pass":
+        send_to_all = "False"
         message = nickname + " hai sbagliato password!\n\tChiudi la chat e connettiti di nuovo.\n"
     elif causa == "same":
-        message = nickname + " nickname già in uso!\n\tChiudi la chat e connettiti con un nuovo nickname\n"
+        send_to_all = "False"
+        message = nickname + \
+            " è nickname già in uso!\n\tChiudi la chat e connettiti con un nuovo nickname\n"
+    elif causa == "kick":
+        message = nickname + " è stato rimosso dall'admin della chat!\n\n"
+    elif causa == "ban":
+        message = nickname + " è stato bannato dall'admin della chat!\n\n"
     else:
-        message = nickname +  " is disconnected\n\n"
+        message = nickname + " si è disconnesso\n\n"
 
-    
     send_message = m = "\n{}>> {}".format("System", message)
-    crittografia(send_message)
-    """send_message = bytes(send_message, encoding='utf8')
-    encrypted_message = cipher.encrypt(send_message)
-    out_message = encrypted_message.decode()
-    client.publish(ROOM, out_message)""" 
 
-    if causa == "exit":
-        client.disconnect()
-        client.loop_stop()
+    if send_to_all == "True":
 
-        with open("./online.txt", 'r+') as input:
-            with open("temp.txt", "w") as output:
-                # iterate all lines from file
-                for line in input:
-                    # if text matches then don't write it
-                    if line.strip("\n") != nickname:
-                        output.write(line)
+        send_message = bytes(send_message, encoding='utf8')
+        encrypted_message = cipher.encrypt(send_message)
+        out_message = encrypted_message.decode()
+        client.publish(ROOM, out_message)
 
-        # replace file with original name
-        os.replace('temp.txt', 'online.txt')
+        if causa == "exit":
+            client.disconnect()
+            client.loop_stop()
 
-        os._exit(0)
+            with open("./online.txt", 'r+') as input:
+                with open("temp.txt", "w") as output:
+                    # iterate all lines from file
+                    for line in input:
+                        # if text matches then don't write it
+                        if line.strip("\n") != nickname:
+                            output.write(line)
+
+            # replace file with original name
+            os.replace('temp.txt', 'online.txt')
+
+            os._exit(0)
     else:
         write_onscreen(m)
         MassageFill.delete("1.0", END)
