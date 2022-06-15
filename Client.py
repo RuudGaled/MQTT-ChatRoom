@@ -16,12 +16,13 @@ ROOM = "provaChat"
 global dummy
 dummy = "\n"
 
+# Definizione del PasswordHasher
 argon2Hasher = argon2.PasswordHasher(
-    time_cost=3,            # number of iterations
+    time_cost=3,            # numero di iterazioni
     memory_cost=64 * 1024,  # 64mb
-    parallelism=1,          # how many parallel threads to use
-    hash_len=32,            # the size of the derived key
-    salt_len=16             # the size of the random generated salt in bytes
+    parallelism=1,          # thread paralleli da utilizzare
+    hash_len=32,            # dimensione della chiave derivata
+    salt_len=16             # dimensione del salt casuale generato in byte
 )
 
 # Definizione funzione write_onscreen
@@ -36,54 +37,66 @@ def on_connect(client, userdata, flags, rc):
     flag = True
 
     status_decoder = {
-        0: "Successfully Connected",
-        1: "Connection refused: Incorrect Protocol Version",
-        2: "Connection refused: Invalid Client Identifier",
-        3: "Connection refused: Server Unavailable",
+        0: "Connessione stabilita",
+        1: "Connessione rifiutata: Versione protocollo errata",
+        2: "Connessione rifiutata: Identificatore client non valido",
+        3: "Connessione rifiutata: Server non disponibile",
         4: "Connection refused: Bad Username/Password",
-        5: "Connection refused: Not Authorized",
+        5: "Connessione rifiutata: Non autorizzato",
     }
 
+    # Creazione instanza Tk()
     msg = tkinter.Tk()
     msg.withdraw()
 
+    # Viene chiesto di inserire un nickname
     nickname = simpledialog.askstring(
         "Nickname", "Scegli un nickname", parent=msg)
-    
-    # Controllo che il nick non sia bannato
-    with open('./bans.txt', 'r') as f:
-        bans = f.readlines()
 
-    if nickname+'\n' in bans:
+    # Controllo della validità del nickname
+    if nickname is None or bool(nickname) == False:
         flag = False
-        disconnection("ban")
-
-    # Controllo che non ci sia già lo stesso nickname
-    with open('./online.txt', 'r') as f:
-        online = f.readlines()
-    
-    if nickname+'\n' in online:
-        flag = False
-        disconnection("same")
-
-    # Chiedo la password
-    if nickname == 'admin':
-        password = simpledialog.askstring(
-            "Password", "Iserisci la password", parent=msg, show='*')
-        try:
-            argon2Hasher.verify(pwd, password)
-        except:
+        disconnection("no_nick")
+    else:
+        # Controllo che il nick non sia bannato
+        with open('./bans.txt', 'r') as f:
+            bans = f.readlines()
+            
+        # Se il nome viene trovato, l'utente viene disconnesso
+        if nickname+'\n' in bans:
             flag = False
-            disconnection("pass_error")
+            disconnection("ban")
 
-    if flag == True:
-        conn_text = ("System>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
-                                                                                         status_decoder.get(rc)))
+        # Controllo che non ci sia già lo stesso nickname
+        with open('./online.txt', 'r') as f:
+            online = f.readlines()
+        # Se il nome viene trovato, l'utente viene disconnesso
+        if nickname+'\n' in online:
+            flag = False
+            disconnection("taken")
+        
+        # Viene chiesta la password
+        if nickname == 'admin':
+            password = simpledialog.askstring(
+                "Password", "Inserisci la password", parent=msg, show='*')
+            try:
+                # Si verifica la correttezza della password
+                argon2Hasher.verify(pwd, password)
+            except:
+                # Se la password è sbagliata, l'utente viene disconnesso
+                flag = False
+                disconnection("pass_error")
 
-        client.subscribe(ROOM)
-        write_onscreen(conn_text)
-        with open('./online.txt', 'a') as f:
-            f.write(f'{nickname}\n')
+        if flag == True:
+            conn_text = ("System>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
+                                                                                            status_decoder.get(rc)))
+            # Iscrizione del Client al topic del Broker
+            client.subscribe(ROOM)
+
+            write_onscreen(conn_text)
+            # Il nickname viene inserito nella lista degli utenti online
+            with open('./online.txt', 'a') as f:
+                f.write(f'{nickname}\n')
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
@@ -98,7 +111,7 @@ def on_message(client, user_data, msg):
         if user.strip('\n') == nickname:
             # L'utente viene viene disconnesso
             disconnection("kick")
-    # Verifica della presenza ed esecuzione del comando "kick"
+    # Verifica della presenza ed esecuzione del comando "ban"
     elif message.find('/ban') >= 0 and msg.payload != dummy:
         user = message.partition('/ban ')[2]
         if user.strip('\n') == nickname:
@@ -109,6 +122,7 @@ def on_message(client, user_data, msg):
 
             # L'utente viene viene disconnesso
             disconnection("ban")
+    # Se il messaggio si trova già nella chat, non viene scritto una seconda volta
     elif msg.payload == dummy:
         pass
     else:
@@ -119,6 +133,7 @@ def send_message():
     global dummy
     global nickname
 
+    # Il testo viene acquisito dalla casella di testo
     get_message = MassageFill.get("1.0", END)
     get_message.encode('utf-8')
 
@@ -126,7 +141,7 @@ def send_message():
     if get_message == '\n' or get_message == '\t\n' or get_message == '\n\n': 
         pass
     else:
-        #  Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
+        # Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
         if get_message.find('/kick') >= 0 and nickname != "admin":
             message = "\nSystem>> You are not the chat admin!\n"
             write_onscreen(message)
@@ -151,35 +166,37 @@ def send_message():
 
 # Definizione della funzione disconnection
 def disconnection(flag):
-    send_to_all = "True"
+    send_all = True
     search = False
 
-    # In base al motivo della disconnessione viene visualizzato un specifico messaggio
-    if flag == "pass_error":
-        send_to_all = "False"
+    # In base al motivo della disconnessione viene visualizzato un specifico 
+    if flag == "no_nick":
+        message = "Non hai impostato un nickname!\n\tChiudi la chat e connettiti di nuovo.\n"
+    elif flag == "pass_error":
+        send_all = False
         message = nickname + " hai sbagliato password!\n\tChiudi la chat e connettiti di nuovo.\n"
-    elif flag == "same":
-        send_to_all = "False"
+    elif flag == "taken":
+        send_all = False
         message = nickname + \
             " è nickname già in uso!\n\tChiudi la chat e connettiti con un nuovo nickname\n"
     elif flag == "kick":
         message = nickname + " è stato rimosso dall'admin della chat!\n\n"
     elif flag == "ban":
         message = nickname + " è stato bannato dall'admin della chat!\n\n"
+
+        # Controllo se il nickname sia stato già bannato
+        with open('./bans.txt', 'r') as f:
+            bans = f.readlines()
+
+        if nickname+'\n' in bans:
+            search = True
     else:
-        message = nickname + " si è disconnesso\n\n"
+        message = "Si è verificato un problema e sei stato disconnesso\n\n"
 
     send_message = m = "\n{}>> {}".format("System", message)
 
-    # Controllo se il nickname sia stato già bannato
-    with open('./bans.txt', 'r') as f:
-        bans = f.readlines()
-
-    if nickname+'\n' in bans:
-        search = True
-
     # Controllo se il messaggio deve essere inviato a tutti i partecipanti della chat
-    if send_to_all == "True":
+    if send_all == True:
         if search == False:
             # Il messaggio viene cifrato
             send_message = bytes(send_message, encoding='utf8')
@@ -211,7 +228,6 @@ def disconnection(flag):
             os.replace('temp.txt', 'online.txt')
 
             # Si ferma l'esecuzione del processo
-            #os._exit(0)
             sys.exit(0)
         else:
             # Il messaggio viene visualizzato solo dall'utente disconnesso
@@ -243,18 +259,14 @@ Frame2 = LabelFrame(window, text="Enter Massage", width=600, height=100)
 Frame2.place(y=300, x=0)
 
 YChatFillScroll = Scrollbar(Frame1)
-YChatFillScroll.place(y=0, x=570, height=250)
-XChatFillScroll = Scrollbar(Frame1, orient=HORIZONTAL)
-XChatFillScroll.place(y=251, x=0, width=570)
+YChatFillScroll.place(y=0, x=570, height=270)
 
-ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set,
-                xscrollcommand=XChatFillScroll.set)
+ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set) # xscrollcommand=XChatFillScroll.set
 #ChatFill = tkinter.scrolledtext.ScrolledText(window)
-ChatFill.place(x=0, y=0, width=570, height=250)
+ChatFill.place(x=0, y=0, width=570, height=270)
 #ChatFill.pack(padx=20, pady=5)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
-XChatFillScroll.config(command=ChatFill.xview)
 
 MassageFill = Text(Frame2, font=("Arial", 16))
 MassageFill.place(x=0, y=0, width=475, height=75)
