@@ -87,16 +87,16 @@ def on_connect(client, userdata, flags, rc):
                 flag = False
                 disconnection("pass_error")
 
-        if flag == True:
-            conn_text = ("System>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
-                                                                                            status_decoder.get(rc)))
-            # Iscrizione del Client al topic del Broker
-            client.subscribe(ROOM)
+    if flag == True:
+        conn_text = ("System>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
+                                                                                        status_decoder.get(rc)))
+        # Iscrizione del Client al topic del Broker
+        client.subscribe(ROOM)
 
-            write_onscreen(conn_text)
-            # Il nickname viene inserito nella lista degli utenti online
-            with open('./online.txt', 'a') as f:
-                f.write(f'{nickname}\n')
+        write_onscreen(conn_text)
+        # Il nickname viene inserito nella lista degli utenti online
+        with open('./online.txt', 'a') as f:
+            f.write(f'{nickname}\n')
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
@@ -191,7 +191,7 @@ def disconnection(flag):
         if nickname+'\n' in bans:
             search = True
     else:
-        message = "Si è verificato un problema e sei stato disconnesso\n\n"
+        message = nickname + " si è disconnesso\n\n"
 
     send_message = m = "\n{}>> {}".format("System", message)
 
