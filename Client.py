@@ -88,7 +88,7 @@ def on_connect(client, userdata, flags, rc):
                 disconnection("pass_error")
 
     if flag == True:
-        conn_text = ("System>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
+        conn_text = ("Sistema>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
                                                                                         status_decoder.get(rc)))
         # Iscrizione del Client al topic del Broker
         client.subscribe(ROOM)
@@ -143,12 +143,12 @@ def send_message():
     else:
         # Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
         if get_message.find('/kick') >= 0 and nickname != "admin":
-            message = "\nSystem>> You are not the chat admin!\n"
+            message = "\nSistema>> You are not the chat admin!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         # Si controlla l'utilizzo errato del comando "ban" da parte di utenti non admin
         elif get_message.find('/ban') >= 0 and nickname != "admin":
-            message = "\nSystem>> You are not the chat admin!\n"
+            message = "\nSistema>> You are not the chat admin!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         else:
@@ -193,7 +193,7 @@ def disconnection(flag):
     else:
         message = nickname + " si è disconnesso\n\n"
 
-    send_message = m = "\n{}>> {}".format("System", message)
+    send_message = m = "\n{}>> {}".format("Sistema", message)
 
     # Controllo se il messaggio deve essere inviato a tutti i partecipanti della chat
     if send_all == True:
@@ -253,9 +253,9 @@ window.title("Chat room")
 window.minsize(600, 400)
 window.resizable(0, 0)
 
-Frame1 = LabelFrame(window, text="Chat Window", width=600, height=300)
+Frame1 = LabelFrame(window, text="Chat", width=600, height=300)
 Frame1.place(y=0, x=0)
-Frame2 = LabelFrame(window, text="Enter Massage", width=600, height=100)
+Frame2 = LabelFrame(window, text="Inserire un messaggio", width=600, height=100)
 Frame2.place(y=300, x=0)
 
 YChatFillScroll = Scrollbar(Frame1)
@@ -271,7 +271,7 @@ YChatFillScroll.config(command=ChatFill.yview)
 MassageFill = Text(Frame2, font=("Arial", 16))
 MassageFill.place(x=0, y=0, width=475, height=75)
 
-SendButton = Button(Frame2, text="Send", command=send_message)  
+SendButton = Button(Frame2, text="Invio", command=send_message)  
 SendButton.place(x=480, y=0, width=100, height=75)
 
 # Creazione id univoco per il Client
