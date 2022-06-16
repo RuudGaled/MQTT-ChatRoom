@@ -102,15 +102,15 @@ def on_message(client, user_data, msg):
     decrypted_message = cipher.decrypt(msg.payload)
     message = decrypted_message.decode("utf-8")
 
-    # Verifica della presenza ed esecuzione del comando "kick"
-    if message.find('/kick') >= 0:
-        user = message.partition('/kick ')[2]
+    # Verifica della presenza ed esecuzione del comando "espelli"
+    if message.find('/espelli') >= 0:
+        user = message.partition('/espelli')[2]
         if user.strip('\n') == nickname:
             # L'utente viene viene disconnesso
             disconnection("kick")
-    # Verifica della presenza ed esecuzione del comando "ban"
-    elif message.find('/ban') >= 0:
-        user = message.partition('/ban ')[2]
+    # Verifica della presenza ed esecuzione del comando "banna"
+    elif message.find('/banna') >= 0:
+        user = message.partition('/banna')[2]
         if user.strip('\n') == nickname:
             # L'utente viene viene disconnesso
             disconnection("ban")
@@ -130,12 +130,12 @@ def send_message():
         pass
     else:
         # Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
-        if get_message.find('/kick') >= 0 and nickname != "admin":
+        if get_message.find('/espelli') >= 0 and nickname != "admin":
             message = "\nSistema>> You are not the chat admin!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         # Si controlla l'utilizzo errato del comando "ban" da parte di utenti non admin
-        elif get_message.find('/ban') >= 0 and nickname != "admin":
+        elif get_message.find('/banna') >= 0 and nickname != "admin":
             message = "\nSistema>> You are not the chat admin!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
@@ -182,7 +182,10 @@ def disconnection(flag):
             with open('bans.txt', 'a') as f:
                 f.write(f'{nickname}\n')
     else:
-        message = nickname + " si è disconnesso\n\n"
+        try:
+            message = nickname + " si è disconnesso\n\n"
+        except:
+            message = " "
 
     send_message1 = send_message2 = "\n{}>> {}".format("Sistema", message)
 
