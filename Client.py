@@ -13,8 +13,6 @@ import paho.mqtt.client as mqtt
 HOST = "mqtt.eclipseprojects.io"
 PORT = 1883
 ROOM = "provaChat"
-global dummy
-dummy = "\n"
 
 # Definizione del PasswordHasher
 argon2Hasher = argon2.PasswordHasher(
@@ -59,7 +57,7 @@ def on_connect(client, userdata, flags, rc):
         disconnection("no_nick")
     else:
         # Controllo che il nick non sia bannato
-        with open('./bans.txt', 'r') as f:
+        with open('bans.txt', 'r') as f:
             bans = f.readlines()
             
         # Se il nome viene trovato, l'utente viene disconnesso
@@ -68,7 +66,7 @@ def on_connect(client, userdata, flags, rc):
             disconnection("ban")
 
         # Controllo che non ci sia già lo stesso nickname
-        with open('./online.txt', 'r') as f:
+        with open('online.txt', 'r') as f:
             online = f.readlines()
         # Se il nome viene trovato, l'utente viene disconnesso
         if nickname+'\n' in online:
@@ -95,42 +93,32 @@ def on_connect(client, userdata, flags, rc):
 
         write_onscreen(conn_text)
         # Il nickname viene inserito nella lista degli utenti online
-        with open('./online.txt', 'a') as f:
+        with open('online.txt', 'a') as f:
             f.write(f'{nickname}\n')
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
-    global dummy
     global nickname
     decrypted_message = cipher.decrypt(msg.payload)
     message = decrypted_message.decode("utf-8")
 
     # Verifica della presenza ed esecuzione del comando "kick"
-    if message.find('/kick') >= 0 and msg.payload != dummy:
+    if message.find('/kick') >= 0:
         user = message.partition('/kick ')[2]
         if user.strip('\n') == nickname:
             # L'utente viene viene disconnesso
             disconnection("kick")
     # Verifica della presenza ed esecuzione del comando "ban"
-    elif message.find('/ban') >= 0 and msg.payload != dummy:
+    elif message.find('/ban') >= 0:
         user = message.partition('/ban ')[2]
         if user.strip('\n') == nickname:
-            
-            # Il nickname viene inserito nella lista dei ban
-            with open('./bans.txt', 'a') as f:
-                f.write(f'{user}\n')
-
             # L'utente viene viene disconnesso
             disconnection("ban")
-    # Se il messaggio si trova già nella chat, non viene scritto una seconda volta
-    elif msg.payload == dummy:
-        pass
     else:
         write_onscreen(message)
 
 # Definizione della funzione send_message
 def send_message():
-    global dummy
     global nickname
 
     # Il testo viene acquisito dalla casella di testo
@@ -153,15 +141,13 @@ def send_message():
             MassageFill.delete("1.0", END)
         else:
             # Il messaggio viene cifrato e inviato nella chat
-            message1 = message2 = "{}: {}".format(nickname, get_message)
-            message1 = bytes(message1, encoding='utf8')
-            encrypted_message = cipher.encrypt(message1) 
+            send_message = "{}: {}".format(nickname, get_message)
+            send_message = bytes(send_message, encoding='utf8')
+            encrypted_message = cipher.encrypt(send_message) 
             out_message = encrypted_message.decode()
-            dummy = encrypted_message
 
             client.publish(ROOM, out_message)
 
-            write_onscreen(message2)
             MassageFill.delete("1.0", END)
 
 # Definizione della funzione disconnection
@@ -171,6 +157,7 @@ def disconnection(flag):
 
     # In base al motivo della disconnessione viene visualizzato un specifico 
     if flag == "no_nick":
+        send_all = False
         message = "Non hai impostato un nickname!\n\tChiudi la chat e connettiti di nuovo.\n"
     elif flag == "pass_error":
         send_all = False
@@ -185,22 +172,28 @@ def disconnection(flag):
         message = nickname + " è stato bannato dall'admin della chat!\n\n"
 
         # Controllo se il nickname sia stato già bannato
-        with open('./bans.txt', 'r') as f:
+        with open('bans.txt', 'r') as f:
             bans = f.readlines()
 
         if nickname+'\n' in bans:
             search = True
+        else:
+            # Il nickname viene inserito nella lista dei ban
+            with open('bans.txt', 'a') as f:
+                f.write(f'{nickname}\n')
     else:
         message = nickname + " si è disconnesso\n\n"
 
-    send_message = m = "\n{}>> {}".format("Sistema", message)
+    send_message1 = send_message2 = "\n{}>> {}".format("Sistema", message)
 
     # Controllo se il messaggio deve essere inviato a tutti i partecipanti della chat
     if send_all == True:
+        
         if search == False:
+
             # Il messaggio viene cifrato
-            send_message = bytes(send_message, encoding='utf8')
-            encrypted_message = cipher.encrypt(send_message)
+            send_message1 = bytes(send_message1, encoding='utf8')
+            encrypted_message = cipher.encrypt(send_message1)
             out_message = encrypted_message.decode()
 
             # Il messaggio viene pubblicato 
@@ -216,7 +209,7 @@ def disconnection(flag):
             client.loop_stop()
 
             # Viene cancellato l'utente che non è più online
-            with open("./online.txt", 'r+') as input:
+            with open("online.txt", 'r+') as input:
                 with open("temp.txt", "w") as output:
                     # si itera su tutte le righe di "input"
                     for line in input:
@@ -231,7 +224,7 @@ def disconnection(flag):
             sys.exit(0)
         else:
             # Il messaggio viene visualizzato solo dall'utente disconnesso
-            write_onscreen(m)
+            write_onscreen(send_message2)
 
             # Disconnessione dal Broker
             client.disconnect()
@@ -239,8 +232,7 @@ def disconnection(flag):
             client.loop_stop()
     else:
         # Il messaggio viene visualizzato solo dall'utente disconnesso
-        write_onscreen(m)
-        #MassageFill.delete("1.0", END)
+        write_onscreen(send_message2)
 
         # Disconnessione dal Broker
         client.disconnect()
@@ -261,10 +253,8 @@ Frame2.place(y=300, x=0)
 YChatFillScroll = Scrollbar(Frame1)
 YChatFillScroll.place(y=0, x=570, height=270)
 
-ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set) # xscrollcommand=XChatFillScroll.set
-#ChatFill = tkinter.scrolledtext.ScrolledText(window)
+ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set)
 ChatFill.place(x=0, y=0, width=570, height=270)
-#ChatFill.pack(padx=20, pady=5)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
 
