@@ -104,13 +104,15 @@ def on_message(client, user_data, msg):
 
     # Verifica della presenza ed esecuzione del comando "espelli"
     if message.find('/espelli') >= 0:
-        user = message.partition('/espelli')[2]
+        write_onscreen(message)
+        user = message.partition('/espelli ')[2]
         if user.strip('\n') == nickname:
             # L'utente viene viene disconnesso
             disconnection("kick")
     # Verifica della presenza ed esecuzione del comando "banna"
     elif message.find('/banna') >= 0:
-        user = message.partition('/banna')[2]
+        write_onscreen(message)
+        user = message.partition('/banna ')[2]
         if user.strip('\n') == nickname:
             # L'utente viene viene disconnesso
             disconnection("ban")
@@ -131,12 +133,12 @@ def send_message():
     else:
         # Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
         if get_message.find('/espelli') >= 0 and nickname != "admin":
-            message = "\nSistema>> You are not the chat admin!\n"
+            message = "\nSistema>> Non hai i permessi per utilizzare questo comando!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         # Si controlla l'utilizzo errato del comando "ban" da parte di utenti non admin
         elif get_message.find('/banna') >= 0 and nickname != "admin":
-            message = "\nSistema>> You are not the chat admin!\n"
+            message = "\nSistema>> Non hai i permessi per utilizzare questo comando!\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         else:
@@ -248,22 +250,26 @@ window.title("Chat room")
 window.minsize(600, 400)
 window.resizable(0, 0)
 
+# Creazione labelFrame
 Frame1 = LabelFrame(window, text="Chat", width=600, height=300)
 Frame1.place(y=0, x=0)
 Frame2 = LabelFrame(window, text="Inserire un messaggio", width=600, height=100)
 Frame2.place(y=300, x=0)
 
+# Configurazione finestra della chat
 YChatFillScroll = Scrollbar(Frame1)
 YChatFillScroll.place(y=0, x=570, height=270)
 
-ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set)
+ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set, font=("Arial", 14))
 ChatFill.place(x=0, y=0, width=570, height=270)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
 
+# Configurazione blocco per scrivere i messaggi
 MassageFill = Text(Frame2, font=("Arial", 16))
 MassageFill.place(x=0, y=0, width=475, height=75)
 
+# Configurazione tasto "Invio"
 SendButton = Button(Frame2, text="Invio", command=send_message)  
 SendButton.place(x=480, y=0, width=100, height=75)
 
