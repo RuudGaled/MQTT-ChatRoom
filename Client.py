@@ -1,8 +1,8 @@
+# Librerie
+from email import message
 import os
 import sys
 import argon2
-import string
-import random as rd
 from tkinter import *
 import tkinter.scrolledtext
 from tkinter import simpledialog
@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 
 HOST = "mqtt.eclipseprojects.io"
 PORT = 1883
-ROOM = "provaChat"
+ROOM = "ChatRoom"
 
 # Definizione del PasswordHasher
 argon2Hasher = argon2.PasswordHasher(
@@ -56,22 +56,25 @@ def on_connect(client, userdata, flags, rc):
         flag = False
         disconnection("no_nick")
     else:
-        # Controllo che il nick non sia bannato
-        with open('bans.txt', 'r') as f:
-            bans = f.readlines()
-            
-        # Se il nome viene trovato, l'utente viene disconnesso
-        if nickname+'\n' in bans:
-            flag = False
-            disconnection("ban")
+        try:
+            # Controllo che il nick non sia bannato
+            with open('bans.txt', 'r') as f:
+                bans = f.readlines()
+                
+            # Se il nome viene trovato, l'utente viene disconnesso
+            if nickname+'\n' in bans:
+                flag = False
+                disconnection("ban")
 
-        # Controllo che non ci sia già lo stesso nickname
-        with open('online.txt', 'r') as f:
-            online = f.readlines()
-        # Se il nome viene trovato, l'utente viene disconnesso
-        if nickname+'\n' in online:
-            flag = False
-            disconnection("taken")
+            # Controllo che non ci sia già lo stesso nickname
+            with open('online.txt', 'r') as f:
+                online = f.readlines()
+            # Se il nome viene trovato, l'utente viene disconnesso
+            if nickname+'\n' in online:
+                flag = False
+                disconnection("taken")
+        except Exception as e:
+            print(e)
         
         # Viene chiesta la password
         if nickname == 'admin':
@@ -167,22 +170,25 @@ def disconnection(flag):
     elif flag == "taken":
         send_all = False
         message = nickname + \
-            " è nickname già in uso!\n\tChiudi la chat e connettiti con un nuovo nickname\n"
+            " è un nickname già in uso!\n\tChiudi la chat e connettiti con un nuovo nickname\n"
     elif flag == "kick":
         message = nickname + " è stato rimosso dall'admin della chat!\n\n"
     elif flag == "ban":
         message = nickname + " è stato bannato dall'admin della chat!\n\n"
 
-        # Controllo se il nickname sia stato già bannato
-        with open('bans.txt', 'r') as f:
-            bans = f.readlines()
+        try:
+            # Controllo se il nickname sia stato già bannato
+            with open('bans.txt', 'r') as f:
+                bans = f.readlines()
 
-        if nickname+'\n' in bans:
-            search = True
-        else:
-            # Il nickname viene inserito nella lista dei ban
-            with open('bans.txt', 'a') as f:
-                f.write(f'{nickname}\n')
+            if nickname+'\n' in bans:
+                search = True
+            else:
+                # Il nickname viene inserito nella lista dei ban
+                with open('bans.txt', 'a') as f:
+                    f.write(f'{nickname}\n')
+        except Exception as e:
+            print(e)
     else:
         try:
             message = nickname + " si è disconnesso\n\n"
@@ -193,9 +199,7 @@ def disconnection(flag):
 
     # Controllo se il messaggio deve essere inviato a tutti i partecipanti della chat
     if send_all == True:
-        
         if search == False:
-
             # Il messaggio viene cifrato
             send_message1 = bytes(send_message1, encoding='utf8')
             encrypted_message = cipher.encrypt(send_message1)
@@ -213,15 +217,17 @@ def disconnection(flag):
             # Si ferma l'esecuzione del Client
             client.loop_stop()
 
-            # Viene cancellato l'utente che non è più online
-            with open("online.txt", 'r+') as input:
-                with open("temp.txt", "w") as output:
-                    # si itera su tutte le righe di "input"
-                    for line in input:
-                        # se il nickname corrisponde, non si scrive
-                        if line.strip("\n") != nickname:
-                            output.write(line)
-
+            try:
+                # Viene cancellato l'utente che non è più online
+                with open("online.txt", 'r+') as input:
+                    with open("temp.txt", "w") as output:
+                        # si itera su tutte le righe di "input"
+                        for line in input:
+                            # se il nickname corrisponde, non si scrive
+                            if line.strip("\n") != nickname:
+                                output.write(line)
+            except Exception as e:
+                print(e)    
             #Si sostituisce il file con il nome originale
             os.replace('temp.txt', 'online.txt')
 
@@ -260,7 +266,7 @@ Frame2.place(y=300, x=0)
 YChatFillScroll = Scrollbar(Frame1)
 YChatFillScroll.place(y=0, x=570, height=270)
 
-ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set, font=("Arial", 14))
+ChatFill = Text(Frame1, yscrollcommand=YChatFillScroll.set, font=("Arial", 13))
 ChatFill.place(x=0, y=0, width=570, height=270)
 ChatFill.configure(state="disabled")
 YChatFillScroll.config(command=ChatFill.yview)
@@ -273,12 +279,10 @@ MassageFill.place(x=0, y=0, width=475, height=75)
 SendButton = Button(Frame2, text="Invio", command=send_message)  
 SendButton.place(x=480, y=0, width=100, height=75)
 
-# Creazione id univoco per il Client
-client_id = 'Client-' + \
-    ''.join(rd.choices(string.ascii_uppercase + string.digits, k=9))
-client = mqtt.Client(client_id)
+# Istanza oggetto Client
+client = mqtt.Client(client_id="", clean_session="True")
 
-# Specifico i metodi
+# Associazione delle funzioni alle callback di paho-mqtt
 client.on_connect = on_connect
 client.on_message = on_message
 
