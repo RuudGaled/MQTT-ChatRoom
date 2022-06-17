@@ -39,8 +39,7 @@ def on_connect(client, userdata, flags, rc):
         1: "Connessione rifiutata: Versione protocollo errata",
         2: "Connessione rifiutata: Identificatore client non valido",
         3: "Connessione rifiutata: Server non disponibile",
-        4: "Connection refused: Bad Username/Password",
-        5: "Connessione rifiutata: Non autorizzato",
+        4: "Connessione rifiutata: Non autorizzato",
     }
 
     # Creazione instanza Tk()
@@ -89,15 +88,23 @@ def on_connect(client, userdata, flags, rc):
                 disconnection("pass_error")
 
     if flag == True:
-        conn_text = ("Sistema>> {} è connesso al broker con lo stato: \n\t{}.\n".format(nickname,
-                                                                                        status_decoder.get(rc)))
+        conn_text = ("Sistema>> Connessione al broker con lo stato: \n\t{}.\n".format(status_decoder.get(rc)))
         # Iscrizione del Client al topic del Broker
         client.subscribe(ROOM)
 
         write_onscreen(conn_text)
         # Il nickname viene inserito nella lista degli utenti online
-        with open('online.txt', 'a') as f:
+        with open('online.txt', 'r+') as f:
             f.write(f'{nickname}\n')
+        
+        # Si notifica a tutti i partecipanti la connessione del nuovo utente
+        message = nickname + " è online!\n\n"
+        send_message = "{}>> {}".format("Sistema", message)
+        send_message = bytes(send_message, encoding='utf8')
+        encrypted_message = cipher.encrypt(send_message)
+        out_message = encrypted_message.decode()
+
+        client.publish(ROOM, out_message)
 
 # Definizione della funzione on_message
 def on_message(client, user_data, msg):
@@ -136,12 +143,12 @@ def send_message():
     else:
         # Si controlla l'utilizzo errato del comando "kick" da parte di utenti non admin
         if get_message.find('/espelli') >= 0 and nickname != "admin":
-            message = "\nSistema>> Non hai i permessi per utilizzare questo comando!\n"
+            message = "\nSistema>> Non hai i permessi per utilizzare questo comando!\n\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         # Si controlla l'utilizzo errato del comando "ban" da parte di utenti non admin
         elif get_message.find('/banna') >= 0 and nickname != "admin":
-            message = "\nSistema>> Non hai i permessi per utilizzare questo comando!\n"
+            message = "\nSistema>> Non hai i permessi per utilizzare questo comando!\n\n"
             write_onscreen(message)
             MassageFill.delete("1.0", END)
         else:
